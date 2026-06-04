@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio Tracker
 
-## Getting Started
+Authenticated India-only portfolio tracker for SIPs, Indian mutual funds, NSE/BSE stocks, India-listed ETFs, allocation analytics, SIP reminders, and watchlist alerts.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router, TypeScript, TailwindCSS
+- shadcn-style local UI primitives in `src/components/ui`
+- Recharts for charts
+- Prisma ORM with PostgreSQL
+- NextAuth Credentials login with bcrypt password hashing
+
+## Setup
 
 ```bash
+npm install
+copy .env.example .env
+npm run db:generate
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set these values in `.env`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/portfolio_tracker?schema=public"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="replace-with-a-long-random-secret"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000). The first signup creates the admin user and disables public signup. The admin can reopen signup and activate/deactivate users from the Admin tab.
 
-## Learn More
+## Docker
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+docker compose up --build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app runs at [http://localhost:3000](http://localhost:3000). Compose starts PostgreSQL in the `db` service, stores data in the `postgres_data` volume, and exposes Postgres on host port `5432` by default.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+If port `5432` is already in use, set `DB_PORT`:
 
-## Deploy on Vercel
+```bash
+$env:DB_PORT="5433"
+docker compose up --build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If port `3000` is already in use, choose another host port and match `NEXTAUTH_URL`:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+$env:APP_PORT="3002"
+$env:DOCKER_NEXTAUTH_URL="http://localhost:3002"
+docker compose up --build
+```
+
+Set a stronger auth secret before running a persistent instance:
+
+```bash
+$env:NEXTAUTH_SECRET="replace-this-with-a-long-random-secret"
+docker compose up --build
+```
+
+The web container applies Prisma migrations automatically before starting Next.js.
+
+## Data Sources
+
+The app does not ship sample portfolio data. It uses real user entries plus live public data:
+
+- MFAPI/mfdata for Indian mutual fund search, NAV, and metadata where available
+- Yahoo Finance chart/search endpoints for NSE/BSE stocks and India-listed ETFs
+
+If a provider does not return data, the UI shows an unavailable state instead of fake fallback values.
+
+## Scripts
+
+```bash
+npm run dev        # local app
+npm run build      # production build
+npm run lint       # eslint
+npm run db:migrate # apply Prisma migrations
+npm run db:seed    # no-op; no sample data is inserted
+npm run db:studio  # open Prisma Studio
+```

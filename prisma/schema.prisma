@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AssetType {
+  MUTUAL_FUND
+  ETF
+  STOCK
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum SipFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum SipStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum TransactionType {
+  SIP_INSTALLMENT
+  LUMPSUM
+  BUY
+  SELL
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
+  accounts      Account[]
+  sessions      Session[]
+
+  portfolios    Portfolio[]
+  sips          Sip[]
+  transactions  Transaction[]
+  watchlistItems WatchlistItem[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Asset {
+  id                  String                 @id @default(cuid())
+  name                String
+  type                AssetType
+  symbol              String?                @unique
+  schemeCode          String?                @unique
+  exchange            String?
+  amc                 String?
+  category            String?
+  nav                 Decimal?               @db.Decimal(18, 6)
+  price               Decimal?               @db.Decimal(18, 6)
+  changePercent       Decimal?               @db.Decimal(8, 4)
+  expenseRatio        Decimal?               @db.Decimal(8, 4)
+  aumCr               Decimal?               @db.Decimal(18, 2)
+  riskLevel           String?
+  sectorAllocation    Json?
+  marketCapAllocation Json?
+  holdings            Json?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  sips                Sip[]
+  transactions        Transaction[]
+  portfolioHoldings   PortfolioHolding[]
+  watchlistItems      WatchlistItem[]
+
+  @@index([name])
+}
+
+model Portfolio {
+  id           String             @id @default(cuid())
+  userId       String
+  name         String
+  currency     String             @default("INR")
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holdings     PortfolioHolding[]
+  snapshots    PortfolioSnapshot[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model PortfolioHolding {
+  id             String    @id @default(cuid())
+  portfolioId    String
+  assetId        String
+  units          Decimal   @db.Decimal(24, 8)
+  averagePrice   Decimal   @db.Decimal(18, 6)
+  investedAmount Decimal   @db.Decimal(18, 2)
+  currentValue   Decimal   @db.Decimal(18, 2)
+  portfolio      Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset          Asset     @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([portfolioId, assetId])
+}
+
+model PortfolioSnapshot {
+  id             String    @id @default(cuid())
+  portfolioId    String
+  date           DateTime
+  investedAmount Decimal   @db.Decimal(18, 2)
+  currentValue   Decimal   @db.Decimal(18, 2)
+  xirr           Decimal?  @db.Decimal(8, 4)
+  portfolio      Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioId, date])
+}
+
+model Sip {
+  id              String       @id @default(cuid())
+  userId          String
+  assetId         String
+  amount          Decimal      @db.Decimal(18, 2)
+  frequency       SipFrequency @default(MONTHLY)
+  startDate       DateTime
+  nextDueDate     DateTime?
+  dismissedDueDate DateTime?
+  status          SipStatus    @default(ACTIVE)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset           Asset        @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  transactions    Transaction[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  userId         String
+  assetId        String
+  sipId          String?
+  type           TransactionType
+  amount         Decimal         @db.Decimal(18, 2)
+  tradeDate      DateTime
+  quantity       Decimal         @db.Decimal(24, 8)
+  navOrPrice     Decimal         @db.Decimal(18, 6)
+  stampDuty      Decimal         @default(0) @db.Decimal(18, 2)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset          Asset           @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  sip            Sip?            @relation(fields: [sipId], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([tradeDate])
+  @@index([userId, assetId])
+}
+
+model WatchlistItem {
+  id             String   @id @default(cuid())
+  userId         String
+  assetId        String
+  aboveThreshold Decimal? @db.Decimal(18, 6)
+  belowThreshold Decimal? @db.Decimal(18, 6)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset          Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assetId])
+}
