@@ -7,6 +7,7 @@ export type InvestmentSearchResult = {
   type: AssetType;
   symbol?: string;
   schemeCode?: string;
+  isin?: string;
   exchange?: string;
   category?: string;
   amc?: string;
@@ -15,6 +16,10 @@ export type InvestmentSearchResult = {
 export type PricePoint = {
   date: string;
   value: number;
+};
+
+export type DatedPricePoint = PricePoint & {
+  dateValue: number;
 };
 
 export type InvestmentQuote = {
@@ -148,7 +153,7 @@ function toNumber(value: unknown) {
 
 function parseMfDate(value: string) {
   const [day, month, year] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function formatChartDate(timestamp: number, range: ChartRange) {
@@ -158,6 +163,10 @@ function formatChartDate(timestamp: number, range: ChartRange) {
     ...(range === "1D" ? { hour: "2-digit", minute: "2-digit" } : {}),
     ...(range === "3Y" || range === "5Y" || range === "ALL" ? { year: "2-digit" } : {}),
   });
+}
+
+function yahooDateString(timestamp: number) {
+  return new Date(timestamp * 1000).toISOString().slice(0, 10);
 }
 
 function yahooAssetType(quoteType?: string, name = ""): AssetType {
@@ -172,29 +181,81 @@ function isIndiaYahooSymbol(symbol?: string) {
   return Boolean(symbol?.endsWith(".NS") || symbol?.endsWith(".BO"));
 }
 
+function normalizeFundFamily(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/\b(direct|regular)\s+plan\b/g, "")
+    .replace(/\b(growth|idcw|dividend)\s+(option|plan)?\b/g, "")
+    .replace(/\b(option|plan|fund|scheme)\b/g, "")
+    .replace(/[-–]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function fundVariantScore(name: string) {
+  let score = 0;
+
+  if (/\bdirect\s+plan\b/i.test(name)) {
+    score += 40;
+  }
+
+  if (/\bgrowth\b/i.test(name)) {
+    score += 30;
+  }
+
+  if (/\bregular\s+plan\b/i.test(name)) {
+    score -= 20;
+  }
+
+  if (/\bIDCW\b|\bdividend\b/i.test(name)) {
+    score -= 35;
+  }
+
+  return score;
+}
+
 export async function searchMutualFunds(query: string): Promise<InvestmentSearchResult[]> {
   if (query.trim().length < 2) {
     return [];
   }
 
-  const response = await fetch(
-    `https://api.mfapi.in/mf/search?q=${encodeURIComponent(query.trim())}`,
-    { next: { revalidate: 60 * 60 * 12 } },
-  );
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `https://api.mfapi.in/mf/search?q=${encodeURIComponent(query.trim())}`,
+      { next: { revalidate: 60 * 60 * 12 } },
+    );
+  } catch {
+    return [];
+  }
 
   if (!response.ok) {
     return [];
   }
 
   const data = (await response.json()) as MfSearchResult[];
+  const normalized = data
+    .map((item) => ({
+      name: item.schemeName ?? `Scheme ${item.schemeCode}`,
+      type: "MUTUAL_FUND" as const,
+      schemeCode: item.schemeCode ? String(item.schemeCode) : undefined,
+      category: item.schemeCategory,
+      amc: item.fundHouse,
+    }))
+    .filter((item) => !/\bETF\b|\bBEES\b/i.test(item.name))
+    .sort((a, b) => fundVariantScore(b.name) - fundVariantScore(a.name));
+  const byFamily = new Map<string, InvestmentSearchResult>();
 
-  return data.slice(0, 8).map((item) => ({
-    name: item.schemeName ?? `Scheme ${item.schemeCode}`,
-    type: "MUTUAL_FUND",
-    schemeCode: item.schemeCode ? String(item.schemeCode) : undefined,
-    category: item.schemeCategory,
-    amc: item.fundHouse,
-  }));
+  for (const item of normalized) {
+    const family = normalizeFundFamily(item.name);
+
+    if (!byFamily.has(family)) {
+      byFamily.set(family, item);
+    }
+  }
+
+  return [...byFamily.values()].slice(0, 8);
 }
 
 export async function searchStocksAndEtfs(query: string): Promise<InvestmentSearchResult[]> {
@@ -202,12 +263,18 @@ export async function searchStocksAndEtfs(query: string): Promise<InvestmentSear
     return [];
   }
 
-  const response = await fetch(
-    `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(
-      query.trim(),
-    )}&quotesCount=12&newsCount=0`,
-    { next: { revalidate: 60 * 15 } },
-  );
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(
+        query.trim(),
+      )}&quotesCount=12&newsCount=0`,
+      { next: { revalidate: 60 * 15 } },
+    );
+  } catch {
+    return [];
+  }
 
   if (!response.ok) {
     return [];
@@ -252,18 +319,8 @@ export async function fetchMutualFundDetails(
   const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - days);
 
-  const response = await fetch(
-    `https://api.mfapi.in/mf/${schemeCode}?startDate=${toDateString(
-      startDate,
-    )}&endDate=${toDateString(endDate)}`,
-    { next: { revalidate: 60 * 60 * 6 } },
-  );
-
-  if (!response.ok) {
-    throw new Error("Unable to fetch mutual fund data.");
-  }
-
-  const payload = (await response.json()) as MfApiResponse;
+  const enrichedPromise = withFallbackTimeout(fetchMfDataDetails(schemeCode), 1800, null);
+  const payload = await fetchMfApiHistory(schemeCode, startDate, endDate);
   const points =
     payload.data
       ?.map((point) => ({
@@ -272,11 +329,12 @@ export async function fetchMutualFundDetails(
         value: Number(point.nav),
       }))
       .filter((point) => Number.isFinite(point.value))
+      .filter((point) => point.dateValue >= startDate.getTime() && point.dateValue <= endDate.getTime())
       .sort((a, b) => a.dateValue - b.dateValue)
       .map(({ date, value }) => ({ date, value })) ?? [];
-  const latest = points.at(-1)?.value ?? null;
+  const enriched = await enrichedPromise;
+  const latest = points.at(-1)?.value ?? enriched?.value ?? null;
   const first = points.at(0)?.value ?? latest;
-  const enriched = await fetchMfDataDetails(schemeCode);
 
   return {
     name: payload.meta?.scheme_name ?? enriched?.name ?? `Scheme ${schemeCode}`,
@@ -291,6 +349,99 @@ export async function fetchMutualFundDetails(
     sectorAllocation: enriched?.sectorAllocation,
     marketCapAllocation: enriched?.marketCapAllocation,
   };
+}
+
+export async function fetchHistoricalInvestmentPrices(input: {
+  type: AssetType;
+  schemeCode?: string | null;
+  symbol?: string | null;
+  startDate: Date;
+  endDate: Date;
+}): Promise<DatedPricePoint[]> {
+  if (input.type === "MUTUAL_FUND") {
+    if (!input.schemeCode) {
+      throw new Error("Mutual fund scheme code is required.");
+    }
+
+    const payload = await fetchMfApiHistory(input.schemeCode, input.startDate, input.endDate);
+
+    return (
+      payload.data
+        ?.map((point) => {
+          const dateValue = parseMfDate(point.date).getTime();
+
+          return {
+            dateValue,
+            date: new Date(dateValue).toISOString().slice(0, 10),
+            value: Number(point.nav),
+          };
+        })
+        .filter(
+          (point) =>
+            Number.isFinite(point.value) &&
+            point.dateValue >= input.startDate.getTime() &&
+            point.dateValue <= input.endDate.getTime(),
+        )
+        .sort((a, b) => a.dateValue - b.dateValue) ?? []
+    );
+  }
+
+  if (!input.symbol) {
+    throw new Error("Symbol is required.");
+  }
+
+  const start = Math.floor(input.startDate.getTime() / 1000);
+  const end = Math.floor(input.endDate.getTime() / 1000);
+  const response = await fetch(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+      input.symbol,
+    )}?period1=${start}&period2=${end}&interval=1d`,
+    { next: { revalidate: 60 * 60 } },
+  );
+
+  if (!response.ok) {
+    throw new Error("Unable to fetch historical prices.");
+  }
+
+  const payload = (await response.json()) as YahooChartResponse;
+  const result = payload.chart?.result?.[0];
+  const timestamps = result?.timestamp ?? [];
+  const closes = result?.indicators?.quote?.[0]?.close ?? [];
+
+  return timestamps
+    .map((timestamp, index) => ({
+      dateValue: timestamp * 1000,
+      date: yahooDateString(timestamp),
+      value: closes[index],
+    }))
+    .filter((point): point is DatedPricePoint => typeof point.value === "number")
+    .sort((a, b) => a.dateValue - b.dateValue);
+}
+
+async function fetchMfApiHistory(schemeCode: string, startDate: Date, endDate: Date) {
+  const urls = [
+    `https://api.mfapi.in/mf/${schemeCode}?startDate=${toDateString(
+      startDate,
+    )}&endDate=${toDateString(endDate)}`,
+    `https://api.mfapi.in/mf/${schemeCode}`,
+  ];
+  let lastError: unknown;
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { next: { revalidate: 60 * 60 * 6 } });
+
+      if (response.ok) {
+        return (await response.json()) as MfApiResponse;
+      }
+
+      lastError = new Error(`MFAPI returned ${response.status}.`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Unable to fetch mutual fund data.");
 }
 
 export async function fetchYahooDetails(
@@ -378,18 +529,7 @@ export async function fetchPriceOnDate(input: {
     start.setDate(start.getDate() - 7);
     const end = new Date(requested);
     end.setDate(end.getDate() + 3);
-    const response = await fetch(
-      `https://api.mfapi.in/mf/${input.schemeCode}?startDate=${toDateString(
-        start,
-      )}&endDate=${toDateString(end)}`,
-      { next: { revalidate: 60 * 60 * 6 } },
-    );
-
-    if (!response.ok) {
-      throw new Error("Unable to fetch NAV for date.");
-    }
-
-    const payload = (await response.json()) as MfApiResponse;
+    const payload = await fetchMfApiHistory(input.schemeCode, start, end);
     const sorted =
       payload.data
         ?.map((point) => ({
@@ -426,6 +566,12 @@ export async function fetchPriceOnDate(input: {
   );
 
   if (!response.ok) {
+    const fallback = await fetchYahooDetails(input.symbol, input.type, "1M");
+
+    if (fallback.value) {
+      return fallback.value;
+    }
+
     throw new Error("Unable to fetch price for date.");
   }
 
@@ -434,6 +580,12 @@ export async function fetchPriceOnDate(input: {
   const value = closes.filter((point): point is number => typeof point === "number").at(-1);
 
   if (!value) {
+    const fallback = await fetchYahooDetails(input.symbol, input.type, "1M");
+
+    if (fallback.value) {
+      return fallback.value;
+    }
+
     throw new Error("Price is unavailable for the selected date.");
   }
 
@@ -459,6 +611,7 @@ async function fetchMfDataDetails(schemeCode: string) {
 
     return {
       name: data.name,
+      value: toNumber(data.nav) ?? undefined,
       amc: data.amc,
       category: data.category,
       holdings: data.holdings
@@ -482,6 +635,15 @@ async function fetchMfDataDetails(schemeCode: string) {
   } catch {
     return null;
   }
+}
+
+function withFallbackTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T) {
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((resolve) => {
+      setTimeout(() => resolve(fallback), timeoutMs);
+    }),
+  ]);
 }
 
 async function fetchYahooSummary(symbol: string) {

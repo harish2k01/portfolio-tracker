@@ -42,6 +42,8 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  mustResetPassword Boolean @default(false)
+  temporaryPasswordExpiresAt DateTime?
   role          UserRole  @default(USER)
   isActive      Boolean   @default(true)
   accounts      Account[]
@@ -50,7 +52,6 @@ model User {
   portfolios    Portfolio[]
   sips          Sip[]
   transactions  Transaction[]
-  watchlistItems WatchlistItem[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -102,6 +103,7 @@ model Asset {
   type                AssetType
   symbol              String?                @unique
   schemeCode          String?                @unique
+  isin                String?                @unique
   exchange            String?
   amc                 String?
   category            String?
@@ -119,7 +121,6 @@ model Asset {
   sips                Sip[]
   transactions        Transaction[]
   portfolioHoldings   PortfolioHolding[]
-  watchlistItems      WatchlistItem[]
 
   @@index([name])
 }
@@ -171,7 +172,6 @@ model Sip {
   frequency       SipFrequency @default(MONTHLY)
   startDate       DateTime
   nextDueDate     DateTime?
-  dismissedDueDate DateTime?
   status          SipStatus    @default(ACTIVE)
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   asset           Asset        @relation(fields: [assetId], references: [id], onDelete: Restrict)
@@ -186,11 +186,14 @@ model Transaction {
   assetId        String
   sipId          String?
   type           TransactionType
-  amount         Decimal         @db.Decimal(18, 2)
+  amount         Decimal         @db.Decimal(18, 3)
   tradeDate      DateTime
   quantity       Decimal         @db.Decimal(24, 8)
   navOrPrice     Decimal         @db.Decimal(18, 6)
   stampDuty      Decimal         @default(0) @db.Decimal(18, 2)
+  externalSource String?
+  externalId     String?
+  importedAt     DateTime?
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   asset          Asset           @relation(fields: [assetId], references: [id], onDelete: Restrict)
   sip            Sip?            @relation(fields: [sipId], references: [id], onDelete: SetNull)
@@ -199,18 +202,5 @@ model Transaction {
 
   @@index([tradeDate])
   @@index([userId, assetId])
-}
-
-model WatchlistItem {
-  id             String   @id @default(cuid())
-  userId         String
-  assetId        String
-  aboveThreshold Decimal? @db.Decimal(18, 6)
-  belowThreshold Decimal? @db.Decimal(18, 6)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  asset          Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, assetId])
+  @@index([userId, externalSource, externalId])
 }

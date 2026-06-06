@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08090b;
-  --foreground: #f5f7fb;
-  --muted: #8b95a7;
-  --panel: #101318;
-  --panel-soft: #151a21;
-  --line: rgba(255, 255, 255, 0.08);
+  --background: #fbfcfd;
+  --foreground: #172234;
+  --muted: #738091;
+  --panel: #ffffff;
+  --panel-soft: #f5f7fa;
+  --line: #e8edf2;
+  --line-strong: #cfd8e3;
+  --primary: #0787e5;
+  --primary-hover: #006fc4;
+  --primary-foreground: #ffffff;
+  --accent: #0787e5;
+  --focus: rgba(7, 135, 229, 0.2);
+  --positive: #00a866;
+  --positive-soft: rgba(0, 168, 102, 0.09);
+  --negative: #e72b4d;
+  --negative-soft: rgba(231, 43, 77, 0.08);
+  --negative-soft-strong: rgba(231, 43, 77, 0.14);
 }
 
 @theme inline {
@@ -20,7 +31,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  scrollbar-color: #aeb8c4 transparent;
 }
 
 * {
@@ -28,16 +39,189 @@ body {
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.28);
+  background: rgba(7, 135, 229, 0.18);
 }
 
 .glass-panel {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.024)),
-    rgba(13, 16, 21, 0.88);
+  background: var(--panel);
   border: 1px solid var(--line);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(18px);
+  box-shadow: 0 1px 2px rgba(23, 34, 52, 0.025);
+}
+
+.theme-light {
+  --background: #fbfcfd;
+  --foreground: #172234;
+  --muted: #738091;
+  --panel: #ffffff;
+  --panel-soft: #f5f7fa;
+  --line: #e8edf2;
+  --line-strong: #cfd8e3;
+  --primary: #0787e5;
+  --primary-hover: #006fc4;
+  --primary-foreground: #ffffff;
+  --accent: #0787e5;
+  --focus: rgba(7, 135, 229, 0.2);
+  --positive: #00a866;
+  --positive-soft: rgba(0, 168, 102, 0.09);
+  --negative: #e72b4d;
+  --negative-soft: rgba(231, 43, 77, 0.08);
+  --negative-soft-strong: rgba(231, 43, 77, 0.14);
+  color: var(--foreground);
+}
+
+.theme-dark {
+  --background: #111827;
+  --foreground: #f5f7fa;
+  --muted: #9aa5b3;
+  --panel: #182130;
+  --panel-soft: #202b3a;
+  --line: #2c394a;
+  --line-strong: #425168;
+  --primary: #eef2f6;
+  --primary-hover: #ffffff;
+  --primary-foreground: #151d2a;
+  --accent: #47adf1;
+  --focus: rgba(71, 173, 241, 0.22);
+  --positive: #52c997;
+  --positive-soft: rgba(82, 201, 151, 0.1);
+  --negative: #f08aa0;
+  --negative-soft: rgba(240, 138, 160, 0.1);
+  --negative-soft-strong: rgba(240, 138, 160, 0.16);
+  color: var(--foreground);
+}
+
+.app-header,
+.app-menu {
+  background: #16212e;
+  border-color: #263545;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+}
+
+.header-control {
+  border-color: #3a4858 !important;
+  background: #202d3b !important;
+  color: #ffffff !important;
+}
+
+.header-control:hover {
+  background: #2a3949 !important;
+}
+
+.theme-light .text-white,
+.theme-light .text-slate-50,
+.theme-light .text-slate-100 {
+  color: var(--foreground) !important;
+}
+
+.theme-light .text-slate-200,
+.theme-light .text-slate-300,
+.theme-light .text-slate-400 {
+  color: #596271 !important;
+}
+
+.theme-light .text-slate-500 {
+  color: var(--muted) !important;
+}
+
+.theme-light .text-cyan-50,
+.theme-light .text-cyan-100,
+.theme-light .text-cyan-200,
+.theme-light .text-sky-300\/70 {
+  color: var(--accent) !important;
+}
+
+.theme-light .text-emerald-200,
+.theme-light .text-emerald-300 {
+  color: var(--positive) !important;
+}
+
+.theme-light .text-rose-100,
+.theme-light .text-rose-200,
+.theme-light .text-rose-300 {
+  color: var(--negative) !important;
+}
+
+.theme-light [class~="bg-white/[0.03]"],
+.theme-light [class~="bg-white/[0.035]"],
+.theme-light [class~="bg-white/[0.04]"],
+.theme-light [class~="bg-white/[0.045]"],
+.theme-light [class~="bg-white/[0.05]"],
+.theme-light [class~="bg-white/[0.06]"],
+.theme-light [class~="bg-white/[0.07]"],
+.theme-light [class~="bg-white/[0.08]"] {
+  background-color: var(--panel-soft) !important;
+}
+
+.theme-light [class~="bg-black/[0.12]"],
+.theme-light [class~="bg-black/[0.16]"],
+.theme-light [class~="bg-black/[0.18]"],
+.theme-light [class~="bg-black/[0.22]"] {
+  background-color: var(--panel-soft) !important;
+}
+
+.theme-light [class~="border-white/10"],
+.theme-light [class~="border-white/15"],
+.theme-light [class~="border-white/20"] {
+  border-color: var(--line) !important;
+}
+
+.theme-light input,
+.theme-light select {
+  background-color: var(--panel) !important;
+  border-color: var(--line) !important;
+  color: var(--foreground) !important;
+}
+
+.theme-light input::placeholder {
+  color: #9aa5b1 !important;
+}
+
+.theme-light option {
+  background: #ffffff !important;
+  color: var(--foreground) !important;
+}
+
+.theme-light aside {
+  background: var(--panel) !important;
+}
+
+.theme-light aside header {
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+
+.theme-light .app-header,
+.theme-light .app-menu {
+  background: #16212e !important;
+  border-color: #263545 !important;
+}
+
+.theme-light .app-header .text-white,
+.theme-light .app-menu .text-white {
+  color: #ffffff !important;
+}
+
+.theme-light .app-menu .text-slate-200,
+.theme-light .app-menu .text-slate-300 {
+  color: #eef2f6 !important;
+}
+
+.theme-light .app-header .text-slate-400,
+.theme-light .app-menu .text-slate-500 {
+  color: #b8c1cc !important;
+}
+
+.theme-light .app-menu [class~="bg-white/12"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.theme-light .modal-panel {
+  background: var(--panel) !important;
+  color: var(--foreground);
+}
+
+.theme-light .fixed[class*="bg-black/"] {
+  background-color: rgba(15, 23, 42, 0.52) !important;
 }
 
 .animate-in {

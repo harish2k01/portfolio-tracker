@@ -3,33 +3,38 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   Area,
+  Cell,
   CartesianGrid,
   ComposedChart,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, Bell, IndianRupee, PiggyBank, TrendingUp } from "lucide-react";
+import { Activity, CalendarClock, IndianRupee, Landmark, PiggyBank, TrendingUp } from "lucide-react";
 import { formatCompactCurrency, formatCurrency } from "@/lib/analytics";
+import { assetTypeLabel } from "@/lib/labels";
 import type { AllocationPoint, HoldingRow, PortfolioDashboard, PortfolioTimelinePoint } from "@/types/portfolio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
-const colors = ["#00c2a8", "#8b8ee7", "#e4b500", "#f97316", "#38bdf8", "#fb7185", "#94a3b8"];
+const colors = ["#0787e5", "#47adf1", "#80c8fa", "#00a866", "#f3a325", "#e72b4d"];
 const assetClassOrder = ["Equity", "Debt", "Commodities"] as const;
 const portfolioRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
 
 const tooltipStyle = {
-  background: "#0f1319",
-  border: "1px solid rgba(255,255,255,0.12)",
+  background: "#111827",
+  border: "1px solid rgba(148,163,184,0.24)",
   borderRadius: "8px",
   color: "#f8fafc",
 };
 
 type AssetClassName = (typeof assetClassOrder)[number];
+type HoldingView = "ALL" | "MF" | "STOCKS";
 
 function useMounted() {
   return useSyncExternalStore(
@@ -64,6 +69,20 @@ function filteredTimeline(data: PortfolioTimelinePoint[], range: (typeof portfol
   return data.filter((point) => new Date(point.date) >= cutoff);
 }
 
+function formatAxisDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    ...(date.getFullYear() !== new Date().getFullYear() ? { year: "2-digit" } : {}),
+  });
+}
+
 function PortfolioAnalysis({
   dashboard,
   onOpenTransactions,
@@ -94,7 +113,7 @@ function PortfolioAnalysis({
           <div className="grid grid-cols-2 gap-6 text-left sm:text-right">
             <div>
               <p className="flex items-center gap-2 text-sm text-slate-300 sm:justify-end">
-                Current <span className="h-3 w-3 rounded-sm bg-[#00c2a8]" />
+                Current <span className="h-3 w-3 rounded-sm bg-[#0787e5]" />
               </p>
               <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(summary.totalValue)}</p>
               <p className={summary.gains >= 0 ? "mt-2 text-sm font-semibold text-emerald-300" : "mt-2 text-sm font-semibold text-rose-300"}>
@@ -104,7 +123,7 @@ function PortfolioAnalysis({
             </div>
             <div>
               <p className="flex items-center gap-2 text-sm text-slate-300 sm:justify-end">
-                Invested <span className="h-3 w-3 rounded-sm bg-[#8b8ee7]" />
+                Invested <span className="h-3 w-3 rounded-sm bg-[#98a2b3]" />
               </p>
               <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(summary.investedAmount)}</p>
             </div>
@@ -118,17 +137,24 @@ function PortfolioAnalysis({
               <ComposedChart data={chartData} margin={{ left: 0, right: 24, top: 16, bottom: 10 }}>
                 <defs>
                   <linearGradient id="portfolioCurrentFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00c2a8" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#00c2a8" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#0787e5" stopOpacity={0.14} />
+                    <stop offset="95%" stopColor="#0787e5" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.07)" vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#8b95a7", fontSize: 12 }} />
+                <CartesianGrid stroke="rgba(148,163,184,0.16)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={34}
+                  tick={{ fill: "#9aa8bd", fontSize: 12 }}
+                  tickFormatter={formatAxisDate}
+                />
                 <YAxis
                   width={82}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: "#8b95a7", fontSize: 12 }}
+                  tick={{ fill: "#9aa8bd", fontSize: 12 }}
                   tickFormatter={formatCompactCurrency}
                 />
                 <Tooltip
@@ -138,7 +164,7 @@ function PortfolioAnalysis({
                 <Area
                   type="monotone"
                   dataKey="current"
-                  stroke="#00c2a8"
+                  stroke="#0787e5"
                   strokeWidth={3}
                   fill="url(#portfolioCurrentFill)"
                   activeDot={{ r: 5, strokeWidth: 2 }}
@@ -146,7 +172,7 @@ function PortfolioAnalysis({
                 <Line
                   type="monotone"
                   dataKey="invested"
-                  stroke="#8b8ee7"
+                  stroke="#98a2b3"
                   strokeWidth={2.5}
                   strokeDasharray="6 5"
                   dot={false}
@@ -188,8 +214,7 @@ function AllocationCard({
   emptyText: string;
   onSelect: (name: string) => void;
 }) {
-  const shownData = data.filter((point) => point.value > 0);
-  const top = shownData[0];
+  const shownData = normalizeKnownAllocations(data);
 
   return (
     <Card className="glass-panel overflow-hidden animate-in">
@@ -199,30 +224,34 @@ function AllocationCard({
       </CardHeader>
       <CardContent className="p-5">
         {shownData.length ? (
-          <div className="space-y-5">
-            <button
-              type="button"
-              className="w-full rounded-lg border border-white/10 bg-black/[0.18] p-4 text-left transition hover:border-cyan-300/30 hover:bg-white/[0.055]"
-              onClick={() => onSelect(top.name)}
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Largest</p>
-              <div className="mt-2 flex items-end justify-between gap-3">
-                <p className="truncate text-xl font-semibold text-white">{top.name}</p>
-                <p className="text-xl font-semibold text-cyan-200">{top.value}%</p>
+          <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center">
+            <div className="relative h-[190px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={shownData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="56%"
+                    outerRadius="82%"
+                    paddingAngle={shownData.length > 1 ? 3 : 0}
+                    cornerRadius={shownData.length > 1 ? 7 : 0}
+                    stroke="var(--panel)"
+                    strokeWidth={4}
+                  >
+                    {shownData.map((point, index) => (
+                      <Cell key={point.name} fill={colors[index % colors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value) => [`${Number(value).toFixed(2)}%`, "Allocation"]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <p className="text-sm font-semibold text-white">{shownData.length} groups</p>
               </div>
-            </button>
-
-            <div className="flex h-3 overflow-hidden rounded-full bg-white/[0.06]">
-              {shownData.map((point, index) => (
-                <span
-                  key={point.name}
-                  className="h-full min-w-[3px]"
-                  style={{
-                    width: `${point.value}%`,
-                    backgroundColor: colors[index % colors.length],
-                  }}
-                />
-              ))}
             </div>
 
             <div className="space-y-3">
@@ -234,12 +263,12 @@ function AllocationCard({
                 <button
                   key={point.name}
                   type="button"
-                  className="grid w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md py-1 text-left transition hover:bg-white/[0.045]"
+                  className="grid w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition hover:bg-white/[0.045]"
                   onClick={() => onSelect(point.name)}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span
-                      className="h-7 w-1 rounded-full"
+                      className="h-3 w-3 shrink-0 rounded-full"
                       style={{ backgroundColor: colors[index % colors.length] }}
                     />
                     <span className="truncate text-sm font-semibold text-white">{point.name}</span>
@@ -257,9 +286,28 @@ function AllocationCard({
   );
 }
 
+function normalizeKnownAllocations(data: AllocationPoint[]) {
+  const known = data.filter((point) => point.value > 0 && !isUnclassified(point.name));
+  const total = known.reduce((sum, point) => sum + point.value, 0);
+
+  if (!total) {
+    return [];
+  }
+
+  return known.map((point) => ({
+    ...point,
+    value: Number(((point.value / total) * 100).toFixed(2)),
+  }));
+}
+
+function isUnclassified(name: string) {
+  return name.toLowerCase() === "unclassified";
+}
+
 function buildAssetSplit(apiAllocations: AllocationPoint[], holdings: HoldingRow[]) {
   const allApiLabelsAreAssetClasses =
     apiAllocations.length > 0 &&
+    apiAllocations.some((point) => point.value > 0 || (point.amount ?? 0) > 0) &&
     apiAllocations.every((point) => assetClassOrder.includes(point.name as AssetClassName));
 
   if (allApiLabelsAreAssetClasses) {
@@ -306,21 +354,33 @@ export function DashboardOverview({
   onOpenAsset: (assetId: string) => void;
 }) {
   const [filter, setFilter] = useState<string | null>(null);
+  const [holdingView, setHoldingView] = useState<HoldingView>("ALL");
   const summary = dashboard?.summary;
   const holdings = useMemo(() => dashboard?.holdings ?? [], [dashboard?.holdings]);
   const assetSplit = useMemo(
     () => buildAssetSplit(dashboard?.allocations.assets ?? [], holdings),
     [dashboard?.allocations.assets, holdings],
   );
+  const typeFilteredHoldings = holdings.filter((holding) => {
+    if (holdingView === "MF") {
+      return holding.type === "MUTUAL_FUND";
+    }
+
+    if (holdingView === "STOCKS") {
+      return holding.type === "STOCK" || holding.type === "ETF";
+    }
+
+    return true;
+  });
   const filteredHoldings = filter
-    ? holdings.filter(
+    ? typeFilteredHoldings.filter(
         (holding) =>
           holding.assetClass === filter ||
-          (holding.category ?? "Unclassified") === filter ||
+          (holding.category ?? "") === filter ||
           holding.sectorAllocation?.some((point) => point.name === filter) ||
           holding.marketCapAllocation?.some((point) => point.name === filter),
       )
-    : holdings;
+    : typeFilteredHoldings;
 
   if (!dashboard || !summary) {
     return <EmptyState title="Loading portfolio..." />;
@@ -328,26 +388,9 @@ export function DashboardOverview({
 
   return (
     <section className="space-y-5">
-      {dashboard.dueSips.length ? (
-        <Card className="border-amber-300/20 bg-amber-300/10 animate-in">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-amber-200" aria-hidden />
-              <p className="text-sm text-amber-50">
-                {dashboard.dueSips.length} SIP installment
-                {dashboard.dueSips.length > 1 ? "s are" : " is"} due.
-              </p>
-            </div>
-            <Button type="button" variant="secondary" onClick={onOpenTransactions}>
-              Open Entries
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <PortfolioAnalysis dashboard={dashboard} onOpenTransactions={onOpenTransactions} />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricCard
           label="Portfolio value"
           value={formatCurrency(summary.totalValue)}
@@ -370,6 +413,13 @@ export function DashboardOverview({
           tone={summary.gains >= 0 ? "emerald" : "rose"}
         />
         <MetricCard
+          label="Realized gain"
+          value={`${summary.realizedGain > 0 ? "+" : ""}${formatCurrency(summary.realizedGain)}`}
+          helper="From sell and redeem transactions"
+          icon={Landmark}
+          tone={summary.realizedGain >= 0 ? "emerald" : "rose"}
+        />
+        <MetricCard
           label="Monthly SIP"
           value={formatCurrency(summary.monthlySipTotal)}
           helper="Active mandates"
@@ -379,8 +429,8 @@ export function DashboardOverview({
         <MetricCard
           label="Active SIPs"
           value={String(summary.activeSipCount)}
-          helper="Due reminders enabled"
-          icon={Bell}
+          helper="Recurring mandates"
+          icon={CalendarClock}
           tone="emerald"
         />
       </div>
@@ -410,16 +460,29 @@ export function DashboardOverview({
       </div>
 
       <Card className="glass-panel animate-in">
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <CardTitle>Holdings</CardTitle>
             <CardDescription>{filter ? `Filtered by ${filter}` : "Click a holding for full history"}</CardDescription>
           </div>
-          {filter ? (
-            <Button type="button" size="sm" variant="secondary" onClick={() => setFilter(null)}>
-              Clear
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {(["ALL", "MF", "STOCKS"] as const).map((item) => (
+              <Button
+                key={item}
+                type="button"
+                size="sm"
+                variant={holdingView === item ? "default" : "secondary"}
+                onClick={() => setHoldingView(item)}
+              >
+                {item === "ALL" ? "All" : item === "MF" ? "MF" : "Stocks"}
+              </Button>
+            ))}
+            {filter ? (
+              <Button type="button" size="sm" variant="secondary" onClick={() => setFilter(null)}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           {filteredHoldings.length ? (
@@ -441,7 +504,7 @@ export function DashboardOverview({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white">{holding.name}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {holding.assetClass} / {holding.type.replace("_", " ")}
+                      {holding.assetClass} / {assetTypeLabel(holding.type)}
                     </p>
                   </div>
                   <p className="text-sm font-semibold text-white lg:text-right">{holding.quantity.toFixed(3)}</p>

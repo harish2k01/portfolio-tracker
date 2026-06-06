@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Amount is required." }, { status: 400 });
     }
 
-    quantity = body.quantity ?? calculateUnits(amount, navOrPrice, stampDuty, 3);
+    quantity = calculateUnits(amount, navOrPrice, stampDuty, 3);
   }
 
   if (!isBuyType(type) && type !== "SELL") {
@@ -127,7 +127,6 @@ export async function POST(request: Request) {
         where: { id: sip.id },
         data: {
           nextDueDate: nextSipDueDate(nextAnchor, sip.frequency, nextAnchor),
-          dismissedDueDate: null,
         },
       });
     }
@@ -211,7 +210,7 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "Amount is required." }, { status: 400 });
     }
 
-    quantity = body.quantity ?? calculateUnits(amount, navOrPrice, stampDuty, 3);
+    quantity = calculateUnits(amount, navOrPrice, stampDuty, 3);
   }
 
   if (!isBuyType(type) && type !== "SELL") {

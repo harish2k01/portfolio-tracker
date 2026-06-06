@@ -1,332 +1,400 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { Bell, CalendarDays, Pause, Play, Plus, Search, Trash2 } from "lucide-react";
+import { FormEvent, KeyboardEvent, useMemo, useState } from "react";
+import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { formatCurrency, monthlyEquivalent } from "@/lib/analytics";
-import type { DueSip, InvestmentSearchResult, SipFrequency, SipRow } from "@/types/portfolio";
+import type { SipFrequency, SipRow, SipStatus } from "@/types/portfolio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { PendingSipEntry } from "@/components/dashboard/transaction-entry";
 
+const colors = ["#0787e5", "#47adf1", "#80c8fa", "#00a866", "#f3a325", "#e72b4d"];
 const selectClass =
-  "h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/15";
+  "h-10 w-full rounded-md border border-slate-300/15 bg-black/[0.22] px-3 text-sm text-white outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
 
 export function SipManager({
   sips,
-  dueSips,
   onChanged,
-  onCreateEntry,
   onOpenSip,
 }: {
   sips: SipRow[];
-  dueSips: DueSip[];
   onChanged: () => Promise<void>;
-  onCreateEntry: (entry: PendingSipEntry) => void;
   onOpenSip: (sipId: string) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<InvestmentSearchResult[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState<InvestmentSearchResult | null>(null);
-  const [amount, setAmount] = useState(10000);
+  const [editingSip, setEditingSip] = useState<SipRow | null>(null);
+  const [amount, setAmount] = useState(0);
   const [frequency, setFrequency] = useState<SipFrequency>("MONTHLY");
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState("");
+  const [status, setStatus] = useState<SipStatus>("ACTIVE");
+  const [deleteTarget, setDeleteTarget] = useState<SipRow | null>(null);
   const [error, setError] = useState("");
-  const activeMonthlySip = sips
-    .filter((sip) => sip.status === "ACTIVE")
-    .reduce((sum, sip) => sum + monthlyEquivalent(sip.amount, sip.frequency), 0);
+  const activeSips = useMemo(() => sips.filter((sip) => sip.status === "ACTIVE"), [sips]);
+  const chartData = useMemo(
+    () =>
+      activeSips.map((sip) => ({
+        id: sip.id,
+        name: compactFundName(sip.asset.name),
+        amount: monthlyEquivalent(sip.amount, sip.frequency),
+      })),
+    [activeSips],
+  );
+  const totalMonthly = chartData.reduce((sum, item) => sum + item.amount, 0);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  async function updateSip(id: string, nextStatus: SipStatus) {
+    await fetch("/api/sips", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: nextStatus }),
+    });
+    await onChanged();
+  }
 
-    async function search() {
-      if (query.trim().length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
-        signal: controller.signal,
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as InvestmentSearchResult[];
-        setSuggestions(data.filter((asset) => asset.type === "MUTUAL_FUND"));
-      }
-    }
-
-    void search();
-    return () => controller.abort();
-  }, [query]);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-
-    if (!selectedAsset) {
-      setError("Select a mutual fund from live search results.");
+  async function deleteSip() {
+    if (!deleteTarget) {
       return;
     }
 
+    await fetch(`/api/sips?id=${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
+    setDeleteTarget(null);
+    await onChanged();
+  }
+
+  function openEdit(sip: SipRow) {
+    setEditingSip(sip);
+    setAmount(sip.amount);
+    setFrequency(sip.frequency);
+    setStartDate(sip.startDate);
+    setStatus(sip.status);
+    setError("");
+  }
+
+  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingSip) {
+      return;
+    }
+
+    setError("");
     const response = await fetch("/api/sips", {
-      method: "POST",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ asset: selectedAsset, amount, frequency, startDate }),
+      body: JSON.stringify({
+        id: editingSip.id,
+        amount,
+        frequency,
+        startDate,
+        status,
+      }),
     });
     const payload = await response.json();
 
     if (!response.ok) {
-      setError(payload.error ?? "Unable to save SIP.");
+      setError(payload.error ?? "Unable to update SIP.");
       return;
     }
 
-    setQuery("");
-    setSelectedAsset(null);
-    setAmount(10000);
+    setEditingSip(null);
     await onChanged();
   }
 
-  async function updateSip(id: string, status: "ACTIVE" | "PAUSED") {
-    await fetch("/api/sips", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    await onChanged();
-  }
+  function openSipFromKeyboard(event: KeyboardEvent<HTMLDivElement>, sipId: string) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
 
-  async function deleteSip(id: string) {
-    await fetch(`/api/sips?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    await onChanged();
-  }
-
-  async function dismissDue(sip: DueSip) {
-    await fetch("/api/sips", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: sip.id, dismissedDueDate: sip.dueDate }),
-    });
-    await onChanged();
+    event.preventDefault();
+    onOpenSip(sipId);
   }
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[0.9fr_1.4fr]">
-      <div className="space-y-5">
-        <Card className="glass-panel">
-          <CardHeader>
-            <CardTitle>Add SIP</CardTitle>
-            <CardDescription>{formatCurrency(activeMonthlySip)} active monthly run-rate</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="sip-search">Mutual fund</Label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                  <Input
-                    id="sip-search"
-                    className="pl-9"
-                    value={query}
-                    onChange={(event) => {
-                      setQuery(event.target.value);
-                      setSelectedAsset(null);
-                    }}
-                    placeholder="Search any Indian mutual fund"
-                  />
-                </div>
-                {suggestions.length ? (
-                  <div className="overflow-hidden rounded-md border border-white/10 bg-black/20">
-                    {suggestions.map((asset) => (
-                      <button
-                        key={asset.schemeCode}
-                        type="button"
-                        className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-white/[0.06]"
-                        onClick={() => {
-                          setSelectedAsset(asset);
-                          setQuery(asset.name);
-                          setSuggestions([]);
-                        }}
-                      >
-                        <span className="block truncate text-white">{asset.name}</span>
-                        <span className="text-xs text-slate-500">{asset.schemeCode}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="sip-amount">SIP amount</Label>
-                  <Input
-                    id="sip-amount"
-                    type="number"
-                    min={100}
-                    step="0.01"
-                    value={amount}
-                    onChange={(event) => setAmount(Number(event.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sip-frequency">Frequency</Label>
-                  <select
-                    id="sip-frequency"
-                    className={selectClass}
-                    value={frequency}
-                    onChange={(event) => setFrequency(event.target.value as SipFrequency)}
-                  >
-                    <option value="WEEKLY" className="bg-slate-950">
-                      Weekly
-                    </option>
-                    <option value="MONTHLY" className="bg-slate-950">
-                      Monthly
-                    </option>
-                    <option value="QUARTERLY" className="bg-slate-950">
-                      Quarterly
-                    </option>
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sip-start">Start date</Label>
-                <Input
-                  id="sip-start"
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                />
-              </div>
-              {error ? <p className="text-sm text-rose-200">{error}</p> : null}
-              <Button type="submit">
-                <Plus className="h-4 w-4" aria-hidden />
-                Add SIP
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {dueSips.length ? (
-          <Card className="border-amber-300/20 bg-amber-300/10">
-            <CardHeader>
-              <CardTitle>Due SIPs</CardTitle>
-              <CardDescription>Create manual entries for due installments</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {dueSips.map((sip) => (
-                <div key={sip.id} className="rounded-lg border border-amber-300/20 bg-black/20 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-white">{sip.asset.name}</p>
-                      <p className="text-xs text-amber-100">Due {sip.dueDate}</p>
-                    </div>
-                    <Bell className="h-4 w-4 text-amber-200" aria-hidden />
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
+    <section className="space-y-5">
+      <Card className="glass-panel overflow-hidden">
+        <CardHeader>
+          <CardTitle>Current SIP Portfolio</CardTitle>
+          <CardDescription>Total SIP: {formatCurrency(totalMonthly)} / month</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activeSips.length ? (
+            <div className="grid gap-5 xl:grid-cols-[1fr_420px_1fr]">
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-sm font-semibold text-white">SIP Breakdown</p>
+                <div className="mt-4 space-y-3">
+                  {chartData.map((item, index) => (
+                    <button
+                      key={item.id}
                       type="button"
-                      size="sm"
-                      onClick={() =>
-                        onCreateEntry({
-                          sipId: sip.id,
-                          asset: sip.asset,
-                          amount: sip.amount,
-                          tradeDate: sip.dueDate,
-                        })
-                      }
+                      className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md py-1 text-left hover:bg-white/[0.045]"
+                      onClick={() => onOpenSip(item.id)}
                     >
-                      Create Entry
-                    </Button>
-                    <Button type="button" size="sm" variant="secondary" onClick={() => dismissDue(sip)}>
-                      Dismiss
-                    </Button>
+                      <span
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: colors[index % colors.length] }}
+                      />
+                      <span className="min-w-0 truncate text-sm font-semibold text-white">{item.name}</span>
+                      <span className="text-sm font-semibold text-white">{formatCurrency(item.amount)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative h-[360px] overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="amount"
+                      nameKey="name"
+                      innerRadius="58%"
+                      outerRadius="82%"
+                      paddingAngle={chartData.length > 1 ? 3 : 0}
+                      cornerRadius={chartData.length > 1 ? 8 : 0}
+                      stroke="#101827"
+                      strokeWidth={4}
+                    >
+                      {chartData.map((item, index) => (
+                        <Cell key={item.id} fill={colors[index % colors.length]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Monthly</p>
+                    <p className="text-xl font-semibold text-white">{formatCurrency(totalMonthly)}</p>
                   </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : null}
-      </div>
+              </div>
+
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-sm font-semibold text-white">Allocation</p>
+                <div className="mt-4 space-y-4">
+                  {chartData.map((item, index) => {
+                    const percentage = totalMonthly ? (item.amount / totalMonthly) * 100 : 0;
+
+                    return (
+                      <div key={item.id} className="space-y-2">
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="truncate font-semibold text-white">{item.name}</span>
+                          <span className="font-semibold text-white">{percentage.toFixed(0)}%</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
+                          <span
+                            className="block h-full"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: colors[index % colors.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
+              Start SIPs from Search to build this allocation.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="glass-panel">
         <CardHeader>
           <CardTitle>SIP Mandates</CardTitle>
           <CardDescription>{sips.length} recurring investments</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent>
           {sips.length ? (
-            sips.map((sip) => (
-              <div
-                key={sip.id}
-                role="button"
-                tabIndex={0}
-                className="grid w-full cursor-pointer gap-4 rounded-lg border border-white/10 bg-black/[0.16] p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.06] lg:grid-cols-[1.4fr_0.8fr_0.8fr_auto]"
-                onClick={() => onOpenSip(sip.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onOpenSip(sip.id);
-                  }
-                }}
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
+            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/[0.12]">
+              <div className="hidden grid-cols-[1.6fr_0.65fr_0.65fr_0.6fr_auto] border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
+                <span>Fund</span>
+                <span className="text-right">Amount</span>
+                <span className="text-right">Next due</span>
+                <span>Status</span>
+                <span className="text-right">Actions</span>
+              </div>
+              {sips.map((sip) => (
+                <div
+                  key={sip.id}
+                  role="button"
+                  tabIndex={0}
+                  className="grid w-full cursor-pointer gap-3 border-b border-white/10 px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.06] lg:grid-cols-[1.6fr_0.65fr_0.65fr_0.6fr_auto] lg:items-center"
+                  onClick={() => onOpenSip(sip.id)}
+                  onKeyDown={(event) => openSipFromKeyboard(event, sip.id)}
+                >
+                  <div className="min-w-0">
                     <h4 className="truncate text-sm font-semibold text-white">{sip.asset.name}</h4>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                      <CalendarDays className="h-4 w-4" aria-hidden />
+                      <span>Started {sip.startDate}</span>
+                    </div>
+                  </div>
+                  <div className="lg:text-right">
+                    <p className="text-sm font-semibold text-white">{formatCurrency(sip.amount)}</p>
+                    <p className="text-xs text-slate-500">{formatFrequency(sip.frequency)}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-white lg:text-right">{sip.nextDueDate ?? "NA"}</p>
+                  <div>
                     <Badge variant={sip.status === "ACTIVE" ? "success" : "warning"}>
                       {sip.status}
                     </Badge>
                   </div>
-                  <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
-                    <CalendarDays className="h-4 w-4" aria-hidden />
-                    <span>Started {sip.startDate}</span>
+                  <div className="flex items-center gap-2 lg:justify-end">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      aria-label="Edit SIP"
+                      title="Edit SIP"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEdit(sip);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      aria-label={sip.status === "ACTIVE" ? "Pause SIP" : "Resume SIP"}
+                      title={sip.status === "ACTIVE" ? "Pause SIP" : "Resume SIP"}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void updateSip(sip.id, sip.status === "ACTIVE" ? "PAUSED" : "ACTIVE");
+                      }}
+                    >
+                      {sip.status === "ACTIVE" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="danger"
+                      aria-label="Delete SIP"
+                      title="Delete SIP"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteTarget(sip);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Amount</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{formatCurrency(sip.amount)}</p>
-                  <p className="text-xs text-slate-500">{sip.frequency}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Next due</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{sip.nextDueDate ?? "NA"}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    aria-label={sip.status === "ACTIVE" ? "Pause SIP" : "Resume SIP"}
-                    title={sip.status === "ACTIVE" ? "Pause SIP" : "Resume SIP"}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void updateSip(sip.id, sip.status === "ACTIVE" ? "PAUSED" : "ACTIVE");
-                    }}
-                  >
-                    {sip.status === "ACTIVE" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="danger"
-                    aria-label="Delete SIP"
-                    title="Delete SIP"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void deleteSip(sip.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           ) : (
             <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
-              Add a mutual fund SIP from live search.
+              No SIP mandates.
             </div>
           )}
         </CardContent>
       </Card>
+
+      {editingSip ? (
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
+          <button className="absolute inset-0 cursor-default" type="button" aria-label="Close edit SIP" onClick={() => setEditingSip(null)} />
+          <form
+            className="modal-panel absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5 shadow-xl"
+            onSubmit={saveEdit}
+          >
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-white">Edit SIP</h3>
+              <p className="mt-1 truncate text-sm text-slate-400">{editingSip.asset.name}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="sip-edit-amount">Amount</Label>
+                <Input
+                  id="sip-edit-amount"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={amount}
+                  onChange={(event) => setAmount(Number(event.target.value))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sip-edit-frequency">Frequency</Label>
+                <select
+                  id="sip-edit-frequency"
+                  className={selectClass}
+                  value={frequency}
+                  onChange={(event) => setFrequency(event.target.value as SipFrequency)}
+                >
+                  <option value="WEEKLY" className="bg-slate-950">Weekly</option>
+                  <option value="MONTHLY" className="bg-slate-950">Monthly</option>
+                  <option value="QUARTERLY" className="bg-slate-950">Quarterly</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sip-edit-start">Start date</Label>
+                <Input
+                  id="sip-edit-start"
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sip-edit-status">Status</Label>
+                <select
+                  id="sip-edit-status"
+                  className={selectClass}
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value as SipStatus)}
+                >
+                  <option value="ACTIVE" className="bg-slate-950">Active</option>
+                  <option value="PAUSED" className="bg-slate-950">Paused</option>
+                </select>
+              </div>
+            </div>
+            {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button type="submit">Save SIP</Button>
+              <Button type="button" variant="secondary" onClick={() => setEditingSip(null)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete SIP mandate?"
+        description={deleteTarget ? `This removes the recurring SIP setup for ${deleteTarget.asset.name}. Existing transactions stay in history.` : undefined}
+        confirmLabel="Delete"
+        tone="danger"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void deleteSip()}
+      />
     </section>
   );
+}
+
+function compactFundName(name: string) {
+  return name
+    .replace(/\s*-\s*Direct Plan\s*-\s*Growth.*/i, "")
+    .replace(/\s*-\s*Growth Option.*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatFrequency(frequency: SipFrequency) {
+  if (frequency === "WEEKLY") {
+    return "Weekly";
+  }
+
+  if (frequency === "QUARTERLY") {
+    return "Quarterly";
+  }
+
+  return "Monthly";
 }

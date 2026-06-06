@@ -47,7 +47,7 @@ async function safeFetchDetails(asset: Asset, range: ChartRange) {
         { type: asset.type, schemeCode: asset.schemeCode, symbol: asset.symbol },
         range,
       ),
-      3500,
+      25000,
     );
   } catch {
     return {

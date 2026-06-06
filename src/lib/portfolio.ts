@@ -1,9 +1,12 @@
 import type { AssetType, SipFrequency, TransactionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assetIdentity } from "@/lib/assets";
-import { fetchInvestmentDetails } from "@/lib/market-data";
 import {
-  calculateNetInvestmentAmount,
+  fetchHistoricalInvestmentPrices,
+  fetchInvestmentDetails,
+  type DatedPricePoint,
+} from "@/lib/market-data";
+import {
   calculateStampDuty as calculateClientStampDuty,
   calculateUnits as calculateClientUnits,
 } from "@/lib/analytics";
@@ -88,7 +91,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
     include: { asset: true },
     orderBy: { tradeDate: "asc" },
   });
-  const grouped = new Map<string, HoldingRow & { realizedOutflow: number }>();
+  const grouped = new Map<string, HoldingRow>();
 
   for (const transaction of transactions) {
     const row =
@@ -111,19 +114,24 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         currentValue: 0,
         gain: 0,
         gainPercent: 0,
-        realizedOutflow: 0,
-      } satisfies HoldingRow & { realizedOutflow: number });
+      } satisfies HoldingRow);
 
     const quantity = Number(transaction.quantity);
     const amount = Number(transaction.amount);
-    const stampDuty = Number(transaction.stampDuty);
+    const navOrPrice = Number(transaction.navOrPrice);
+
+    if (Number.isFinite(navOrPrice) && navOrPrice > 0) {
+      row.currentPrice = navOrPrice;
+    }
 
     if (transaction.type === "SELL") {
-      row.quantity -= quantity;
-      row.realizedOutflow += amount;
+      const averageCost = row.quantity > 0 ? row.investedAmount / row.quantity : 0;
+      const soldQuantity = Math.min(quantity, row.quantity);
+      row.investedAmount = Math.max(row.investedAmount - averageCost * soldQuantity, 0);
+      row.quantity = Math.max(row.quantity - quantity, 0);
     } else {
       row.quantity += quantity;
-      row.investedAmount += calculateNetInvestmentAmount(amount, stampDuty);
+      row.investedAmount += amount;
     }
 
     grouped.set(transaction.assetId, row);
@@ -142,9 +150,9 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           }),
           3500,
         );
-        const currentPrice = quote.value;
+        const currentPrice = quote.value ?? row.currentPrice;
         const currentValue = currentPrice ? row.quantity * currentPrice : 0;
-        const netInvested = Math.max(row.investedAmount - row.realizedOutflow, 0);
+        const netInvested = Math.max(row.investedAmount, 0);
         const gain = currentValue - netInvested;
         const category = quote.category ?? row.category;
         const assetClass = classifyAssetClass(row.type, row.name, category);
@@ -162,8 +170,17 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           marketCapAllocation: quote.marketCapAllocation ?? inferMarketCapAllocation(row.name, category),
         };
       } catch {
+        const currentPrice = row.currentPrice;
+        const currentValue = currentPrice ? row.quantity * currentPrice : 0;
+        const netInvested = Math.max(row.investedAmount, 0);
+        const gain = currentValue - netInvested;
+
         return {
           ...row,
+          investedAmount: netInvested,
+          currentValue,
+          gain,
+          gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
           sectorAllocation: inferSectorAllocation(row.name, row.category),
           marketCapAllocation: inferMarketCapAllocation(row.name, row.category),
         };
@@ -173,19 +190,15 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
 }
 
 export async function getDashboard(userId: string) {
-  const [holdings, sips, watchlistItems, timeline] = await Promise.all([
+  const [holdings, sips, timeline, realizedGain] = await Promise.all([
     getUserHoldings(userId),
     prisma.sip.findMany({
       where: { userId },
       include: { asset: true },
       orderBy: { startDate: "desc" },
     }),
-    prisma.watchlistItem.findMany({
-      where: { userId },
-      include: { asset: true },
-      orderBy: { createdAt: "desc" },
-    }),
     getPortfolioTimeline(userId),
+    getRealizedGain(userId),
   ]);
 
   const investedAmount = holdings.reduce((sum, row) => sum + row.investedAmount, 0);
@@ -194,8 +207,7 @@ export async function getDashboard(userId: string) {
   const monthlySipTotal = sips
     .filter((sip) => sip.status === "ACTIVE")
     .reduce((sum, sip) => sum + monthlyEquivalent(Number(sip.amount), sip.frequency), 0);
-  const dueSips = await getDueSips(userId);
-  const assetAllocation = allocationFromHoldings(holdings, "assetClass");
+  const assetAllocation = allocationFromHoldings(holdings);
   const sectorAllocation = weightedProviderAllocation(holdings, "sectorAllocation");
   const marketCapSplit = weightedProviderAllocation(holdings, "marketCapAllocation");
 
@@ -205,10 +217,10 @@ export async function getDashboard(userId: string) {
       investedAmount,
       gains,
       gainsPercent: investedAmount ? (gains / investedAmount) * 100 : 0,
+      realizedGain,
       monthlySipTotal,
       activeSipCount: sips.filter((sip) => sip.status === "ACTIVE").length,
       holdingsCount: holdings.length,
-      watchlistCount: watchlistItems.length,
     },
     holdings,
     sips: sips.map((sip) => ({
@@ -220,7 +232,6 @@ export async function getDashboard(userId: string) {
       status: sip.status,
       asset: serializeAsset(sip.asset),
     })),
-    dueSips,
     timeline: withCurrentTimelinePoint(timeline, investedAmount, totalValue),
     allocations: {
       assets: assetAllocation,
@@ -230,47 +241,202 @@ export async function getDashboard(userId: string) {
   };
 }
 
+async function getRealizedGain(userId: string) {
+  const transactions = await prisma.transaction.findMany({
+    where: { userId },
+    select: {
+      assetId: true,
+      type: true,
+      amount: true,
+      quantity: true,
+    },
+    orderBy: [{ tradeDate: "asc" }, { createdAt: "asc" }],
+  });
+  const positions = new Map<string, { quantity: number; costBasis: number }>();
+  let realizedGain = 0;
+
+  for (const transaction of transactions) {
+    const position = positions.get(transaction.assetId) ?? { quantity: 0, costBasis: 0 };
+    const quantity = Number(transaction.quantity);
+    const amount = Number(transaction.amount);
+
+    if (transaction.type === "SELL") {
+      const soldQuantity = Math.min(Math.max(quantity, 0), position.quantity);
+      const averageCost = position.quantity > 0 ? position.costBasis / position.quantity : 0;
+
+      realizedGain += amount - averageCost * soldQuantity;
+      position.quantity = Math.max(position.quantity - soldQuantity, 0);
+      position.costBasis = Math.max(position.costBasis - averageCost * soldQuantity, 0);
+    } else {
+      position.quantity += quantity;
+      position.costBasis += amount;
+    }
+
+    positions.set(transaction.assetId, position);
+  }
+
+  return Number(realizedGain.toFixed(2));
+}
+
 async function getPortfolioTimeline(userId: string) {
   const transactions = await prisma.transaction.findMany({
     where: { userId },
+    include: { asset: true },
     orderBy: [{ tradeDate: "asc" }, { createdAt: "asc" }],
   });
-  const unitsByAsset = new Map<string, number>();
-  const lastPriceByAsset = new Map<string, number>();
-  const points = new Map<string, { date: string; invested: number; current: number }>();
-  let invested = 0;
 
-  for (const transaction of transactions) {
-    const assetId = transaction.assetId;
-    const quantity = Number(transaction.quantity);
-    const amount = Number(transaction.amount);
-    const stampDuty = Number(transaction.stampDuty);
-    const price = Number(transaction.navOrPrice);
-    const previousUnits = unitsByAsset.get(assetId) ?? 0;
-
-    lastPriceByAsset.set(assetId, price);
-
-    if (transaction.type === "SELL") {
-      unitsByAsset.set(assetId, Math.max(previousUnits - quantity, 0));
-      invested = Math.max(invested - amount, 0);
-    } else {
-      unitsByAsset.set(assetId, previousUnits + quantity);
-      invested += calculateNetInvestmentAmount(amount, stampDuty);
-    }
-
-    const current = [...unitsByAsset.entries()].reduce((sum, [id, units]) => {
-      return sum + units * (lastPriceByAsset.get(id) ?? 0);
-    }, 0);
-    const date = transaction.tradeDate.toISOString().slice(0, 10);
-
-    points.set(date, {
-      date,
-      invested: Number(invested.toFixed(2)),
-      current: Number(current.toFixed(2)),
-    });
+  if (!transactions.length) {
+    return [];
   }
 
-  return [...points.values()];
+  const firstTradeDate = transactions[0].tradeDate;
+  const startDate = startOfDay(firstTradeDate);
+  const endDate = startOfDay(new Date());
+  const transactionsByDate = new Map<string, typeof transactions>();
+  const assetsById = new Map<string, (typeof transactions)[number]["asset"]>();
+  const priceSeriesByAsset = new Map<string, DatedPricePoint[]>();
+  const allDates = new Set<string>();
+
+  for (const transaction of transactions) {
+    const date = transaction.tradeDate.toISOString().slice(0, 10);
+    const list = transactionsByDate.get(date) ?? [];
+    list.push(transaction);
+    transactionsByDate.set(date, list);
+    assetsById.set(transaction.assetId, transaction.asset);
+    allDates.add(date);
+  }
+
+  allDates.add(endDate.toISOString().slice(0, 10));
+  addTimelineDateRange(allDates, startDate, endDate);
+
+  await Promise.all(
+    [...assetsById.entries()].map(async ([assetId, asset]) => {
+      const tradePrices = transactions
+        .filter((transaction) => transaction.assetId === assetId)
+        .map((transaction) => ({
+          date: transaction.tradeDate.toISOString().slice(0, 10),
+          dateValue: startOfDay(transaction.tradeDate).getTime(),
+          value: Number(transaction.navOrPrice),
+        }))
+        .filter((point) => Number.isFinite(point.value) && point.value > 0);
+
+      try {
+        const providerPrices = await withFallbackTimeout(
+          fetchHistoricalInvestmentPrices({
+            type: asset.type,
+            schemeCode: asset.schemeCode,
+            symbol: asset.symbol,
+            startDate,
+            endDate: addDays(endDate, 1),
+          }),
+          8000,
+          [],
+        );
+        const merged = mergePriceSeries([...providerPrices, ...tradePrices]);
+
+        priceSeriesByAsset.set(assetId, merged);
+
+        for (const point of merged) {
+          if (point.dateValue >= startDate.getTime() && point.dateValue <= endDate.getTime()) {
+            allDates.add(point.date);
+          }
+        }
+      } catch {
+        priceSeriesByAsset.set(assetId, mergePriceSeries(tradePrices));
+      }
+    }),
+  );
+
+  const dateList = [...allDates].sort();
+  const unitsByAsset = new Map<string, number>();
+  const investedByAsset = new Map<string, number>();
+
+  return dateList
+    .map((date) => {
+      for (const transaction of transactionsByDate.get(date) ?? []) {
+        const assetId = transaction.assetId;
+        const quantity = Number(transaction.quantity);
+        const amount = Number(transaction.amount);
+        const previousUnits = unitsByAsset.get(assetId) ?? 0;
+        const previousInvested = investedByAsset.get(assetId) ?? 0;
+
+        if (transaction.type === "SELL") {
+          const averageCost = previousUnits > 0 ? previousInvested / previousUnits : 0;
+          const soldQuantity = Math.min(quantity, previousUnits);
+          unitsByAsset.set(assetId, Math.max(previousUnits - quantity, 0));
+          investedByAsset.set(assetId, Math.max(previousInvested - averageCost * soldQuantity, 0));
+        } else {
+          unitsByAsset.set(assetId, previousUnits + quantity);
+          investedByAsset.set(assetId, previousInvested + amount);
+        }
+      }
+
+      const invested = [...investedByAsset.values()].reduce((sum, value) => sum + value, 0);
+      const dateValue = new Date(`${date}T00:00:00.000Z`).getTime();
+      const current = [...unitsByAsset.entries()].reduce((sum, [assetId, units]) => {
+        return sum + units * priceOnOrBefore(priceSeriesByAsset.get(assetId) ?? [], dateValue);
+      }, 0);
+
+      return {
+        date,
+        invested: Number(invested.toFixed(2)),
+        current: Number(current.toFixed(2)),
+      };
+    })
+    .filter((point) => point.invested > 0 || point.current > 0);
+}
+
+function mergePriceSeries(points: DatedPricePoint[]) {
+  const byDate = new Map<string, DatedPricePoint>();
+
+  for (const point of points) {
+    if (Number.isFinite(point.value) && point.value > 0) {
+      byDate.set(point.date, point);
+    }
+  }
+
+  return [...byDate.values()].sort((a, b) => a.dateValue - b.dateValue);
+}
+
+function priceOnOrBefore(points: DatedPricePoint[], dateValue: number) {
+  for (let index = points.length - 1; index >= 0; index -= 1) {
+    if (points[index].dateValue <= dateValue) {
+      return points[index].value;
+    }
+  }
+
+  return 0;
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function addTimelineDateRange(dates: Set<string>, startDate: Date, endDate: Date) {
+  const cursor = startOfDay(startDate);
+  const finalDate = startOfDay(endDate);
+
+  while (cursor <= finalDate) {
+    dates.add(cursor.toISOString().slice(0, 10));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+}
+
+function withFallbackTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T) {
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((resolve) => {
+      setTimeout(() => resolve(fallback), timeoutMs);
+    }),
+  ]);
 }
 
 function withCurrentTimelinePoint(
@@ -294,52 +460,6 @@ function withCurrentTimelinePoint(
   }
 
   return [...timeline, finalPoint];
-}
-
-export async function getDueSips(userId: string) {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const sips = await prisma.sip.findMany({
-    where: {
-      userId,
-      status: "ACTIVE",
-      nextDueDate: { lte: today },
-    },
-    include: {
-      asset: true,
-      transactions: {
-        orderBy: { tradeDate: "desc" },
-        take: 1,
-      },
-    },
-  });
-
-  return sips
-    .filter((sip) => {
-      const dueDate = sip.nextDueDate;
-      const dismissed = sip.dismissedDueDate;
-
-      if (!dueDate) {
-        return false;
-      }
-
-      if (dismissed && dismissed.toDateString() === dueDate.toDateString()) {
-        return false;
-      }
-
-      return !sip.transactions.some(
-        (transaction) =>
-          transaction.type === "SIP_INSTALLMENT" &&
-          transaction.tradeDate.toDateString() === dueDate.toDateString(),
-      );
-    })
-    .map((sip) => ({
-      id: sip.id,
-      amount: Number(sip.amount),
-      dueDate: sip.nextDueDate?.toISOString().slice(0, 10) ?? "",
-      frequency: sip.frequency,
-      asset: serializeAsset(sip.asset),
-    }));
 }
 
 export async function getUserAssetTransactions(userId: string, assetId: string) {
@@ -405,20 +525,23 @@ export function serializeAsset(asset: {
   };
 }
 
-function allocationFromHoldings(rows: HoldingRow[], key: "assetClass" | "category") {
-  const total = rows.reduce((sum, row) => sum + row.currentValue, 0);
+function allocationFromHoldings(rows: HoldingRow[]) {
+  const total = rows.reduce((sum, row) => sum + allocationBasis(row), 0);
   const groups = new Map<string, number>();
 
   for (const row of rows) {
-    const label = key === "assetClass" ? row.assetClass : row.category || "Unclassified";
-    groups.set(label, (groups.get(label) ?? 0) + row.currentValue);
+    groups.set(row.assetClass, (groups.get(row.assetClass) ?? 0) + allocationBasis(row));
   }
 
   return [...groups.entries()].map(([name, value]) => ({
     name,
     value: total ? Number(((value / total) * 100).toFixed(2)) : 0,
     amount: value,
-  }));
+    }));
+}
+
+function allocationBasis(row: Pick<HoldingRow, "currentValue" | "investedAmount">) {
+  return row.currentValue > 0 ? row.currentValue : row.investedAmount;
 }
 
 function classifyAssetClass(
@@ -476,6 +599,14 @@ function inferMarketCapAllocation(name: string, category?: string | null) {
     return [{ name: "Large Cap", value: 100 }];
   }
 
+  if (
+    /\bnifty\s*50\b|\bsensex\b|\bnifty\s*next\s*50\b|\bnasdaq\s*100\b|\bs&p\s*500\b/.test(
+      text,
+    )
+  ) {
+    return [{ name: "Large Cap", value: 100 }];
+  }
+
   if (/mid cap/.test(text)) {
     return [{ name: "Mid Cap", value: 100 }];
   }
@@ -512,16 +643,42 @@ function weightedProviderAllocation(
   let allocatedValue = 0;
 
   for (const row of rows) {
-    const allocation = row[key];
-
-    if (!allocation?.length || row.currentValue <= 0) {
+    if (row.assetClass !== "Equity") {
       continue;
     }
 
-    allocatedValue += row.currentValue;
+    const allocation = row[key];
+    const amount = allocationBasis(row);
 
-    for (const point of allocation) {
-      groups.set(point.name, (groups.get(point.name) ?? 0) + row.currentValue * (point.value / 100));
+    if (!allocation?.length || amount <= 0) {
+      continue;
+    }
+
+    const normalizedAllocation = allocation
+      .map((point) => ({
+        name: normalizeAllocationName(point.name, key),
+        value: Number(point.value),
+      }))
+      .filter(
+        (point) =>
+          point.name &&
+          point.name.toLowerCase() !== "unclassified" &&
+          Number.isFinite(point.value) &&
+          point.value > 0,
+      );
+    const allocationTotal = normalizedAllocation.reduce((sum, point) => sum + point.value, 0);
+
+    if (!allocationTotal) {
+      continue;
+    }
+
+    allocatedValue += amount;
+
+    for (const point of normalizedAllocation) {
+      groups.set(
+        point.name,
+        (groups.get(point.name) ?? 0) + amount * (point.value / allocationTotal),
+      );
     }
   }
 
@@ -533,6 +690,31 @@ function weightedProviderAllocation(
     }))
     .filter((point) => point.value > 0)
     .sort((a, b) => b.value - a.value);
+}
+
+function normalizeAllocationName(
+  name: string,
+  key: "sectorAllocation" | "marketCapAllocation",
+) {
+  const cleaned = name.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+
+  if (key === "marketCapAllocation") {
+    if (/\blarge\b/i.test(cleaned)) {
+      return "Large Cap";
+    }
+
+    if (/\bmid\b/i.test(cleaned)) {
+      return "Mid Cap";
+    }
+
+    if (/\bsmall\b|\bmicro\b/i.test(cleaned)) {
+      return "Small Cap";
+    }
+  }
+
+  return cleaned
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export async function getAvailableUnits(userId: string, assetId: string) {

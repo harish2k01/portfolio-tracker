@@ -1,6 +1,7 @@
 import type { SipFrequency, SipStatus } from "@prisma/client";
 import { upsertAsset } from "@/lib/assets";
 import { prisma } from "@/lib/prisma";
+import { autoTagSipTransactions } from "@/lib/sip-auto-tag";
 import { nextSipDueDate, serializeAsset } from "@/lib/portfolio";
 import { getCurrentUser } from "@/lib/session";
 import type { InvestmentSearchResult } from "@/lib/market-data";
@@ -40,19 +41,29 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     asset?: InvestmentSearchResult;
+    assetId?: string;
     amount?: number;
     frequency?: SipFrequency;
     startDate?: string;
   };
 
-  if (!body.asset || body.asset.type !== "MUTUAL_FUND" || !body.amount || !body.startDate) {
+  if ((!body.asset && !body.assetId) || !body.amount || !body.startDate) {
     return Response.json(
       { error: "Mutual fund asset, amount, and start date are required." },
       { status: 400 },
     );
   }
 
-  const asset = await upsertAsset(body.asset);
+  const asset = body.asset
+    ? await upsertAsset(body.asset)
+    : await prisma.asset.findUnique({ where: { id: body.assetId } });
+
+  if (!asset || asset.type !== "MUTUAL_FUND") {
+    return Response.json(
+      { error: "Mutual fund asset, amount, and start date are required." },
+      { status: 400 },
+    );
+  }
   const startDate = new Date(body.startDate);
   const frequency = body.frequency ?? "MONTHLY";
   const sip = await prisma.sip.create({
@@ -66,6 +77,7 @@ export async function POST(request: Request) {
     },
     include: { asset: true },
   });
+  await autoTagSipTransactions(user.id, sip.id);
 
   return Response.json(
     {
@@ -94,7 +106,6 @@ export async function PATCH(request: Request) {
     frequency?: SipFrequency;
     startDate?: string;
     status?: SipStatus;
-    dismissedDueDate?: string;
   };
 
   if (!body.id) {
@@ -120,10 +131,10 @@ export async function PATCH(request: Request) {
       nextDueDate:
         body.startDate || body.frequency ? nextSipDueDate(startDate, frequency) : undefined,
       status: body.status,
-      dismissedDueDate: body.dismissedDueDate ? new Date(body.dismissedDueDate) : undefined,
     },
     include: { asset: true },
   });
+  await autoTagSipTransactions(user.id, sip.id);
 
   return Response.json({
     id: sip.id,

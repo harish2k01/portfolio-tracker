@@ -10,11 +10,11 @@ type MetricCardProps = {
 };
 
 const toneStyles = {
-  cyan: "bg-cyan-300/10 text-cyan-100 ring-cyan-300/20",
-  emerald: "bg-emerald-300/10 text-emerald-100 ring-emerald-300/20",
-  amber: "bg-amber-300/10 text-amber-100 ring-amber-300/20",
-  rose: "bg-rose-300/10 text-rose-100 ring-rose-300/20",
-  slate: "bg-slate-300/10 text-slate-100 ring-white/10",
+  cyan: "bg-blue-500/10 text-blue-700 ring-blue-600/15",
+  emerald: "bg-emerald-500/10 text-emerald-700 ring-emerald-600/15",
+  amber: "bg-amber-500/10 text-amber-700 ring-amber-600/15",
+  rose: "bg-rose-500/10 text-rose-700 ring-rose-600/15",
+  slate: "bg-slate-500/10 text-slate-600 ring-slate-500/15",
 };
 
 export function MetricCard({
@@ -22,10 +22,10 @@ export function MetricCard({
   value,
   helper,
   icon: Icon,
-  tone = "cyan",
+  tone = "amber",
 }: MetricCardProps) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.065]">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 transition duration-200 hover:border-[var(--line-strong)]">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">

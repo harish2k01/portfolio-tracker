@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
           where: { email },
         });
 
-        if (!user?.passwordHash || !user.isActive) {
+        if (!user?.passwordHash || !user.isActive || user.mustResetPassword) {
           return null;
         }
 

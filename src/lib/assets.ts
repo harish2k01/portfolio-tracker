@@ -13,6 +13,7 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
       update: {
         name: input.name,
         type: input.type,
+        isin: input.isin,
         amc: input.amc,
         category: input.category,
       },
@@ -20,6 +21,7 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
         name: input.name,
         type: input.type,
         schemeCode: input.schemeCode,
+        isin: input.isin,
         amc: input.amc,
         category: input.category,
       },
@@ -35,6 +37,7 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
     update: {
       name: input.name,
       type: input.type,
+      isin: input.isin,
       exchange: input.exchange,
       category: input.category,
     },
@@ -42,6 +45,7 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
       name: input.name,
       type: input.type,
       symbol: input.symbol,
+      isin: input.isin,
       exchange: input.exchange,
       category: input.category,
     },

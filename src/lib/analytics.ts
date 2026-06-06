@@ -2,12 +2,37 @@ import type { AssetType, SipFrequency, TransactionType } from "@/types/portfolio
 
 export const MUTUAL_FUND_STAMP_DUTY_RATE = 0.00005;
 
-export function formatCurrency(value: number) {
+type CurrencyFormatOptions = {
+  minimumFractionDigits?: number;
+  maximumFractionDigits?: number;
+};
+
+export function formatCurrency(value: number, options: CurrencyFormatOptions = {}) {
+  const {
+    minimumFractionDigits = 0,
+    maximumFractionDigits = 0,
+  } = options;
+
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0,
+    minimumFractionDigits,
+    maximumFractionDigits,
   }).format(value);
+}
+
+export function formatCurrencyWithDecimals(value: number, digits = 2) {
+  return formatCurrency(value, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+export function formatNav(value: number) {
+  return formatCurrency(value, {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
 }
 
 export function formatCompactCurrency(value: number) {

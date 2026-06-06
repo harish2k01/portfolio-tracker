@@ -20,6 +20,7 @@ export type InvestmentSearchResult = {
   type: AssetType;
   symbol?: string;
   schemeCode?: string;
+  isin?: string;
   exchange?: string;
   category?: string;
   amc?: string;
@@ -59,14 +60,6 @@ export type SipRow = {
   asset: SerializedAsset;
 };
 
-export type DueSip = {
-  id: string;
-  amount: number;
-  dueDate: string;
-  frequency: SipFrequency;
-  asset: SerializedAsset;
-};
-
 export type TransactionRow = {
   id: string;
   type: TransactionType;
@@ -91,14 +84,13 @@ export type PortfolioDashboard = {
     investedAmount: number;
     gains: number;
     gainsPercent: number;
+    realizedGain: number;
     monthlySipTotal: number;
     activeSipCount: number;
     holdingsCount: number;
-    watchlistCount: number;
   };
   holdings: HoldingRow[];
   sips: SipRow[];
-  dueSips: DueSip[];
   timeline: PortfolioTimelinePoint[];
   allocations: {
     assets: AllocationPoint[];
