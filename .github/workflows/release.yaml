@@ -19,7 +19,7 @@ concurrency:
 jobs:
   release:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: portfolio-tracker-runner
     outputs:
       tag: ${{ steps.semantic.outputs.tag }}
       version: ${{ steps.semantic.outputs.version }}
@@ -187,7 +187,7 @@ jobs:
 
   build:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: portfolio-tracker-runner
     steps:
       - name: Checkout release commit
         uses: actions/checkout@v4
@@ -242,6 +242,7 @@ jobs:
             org.opencontainers.image.description=Self-hosted portfolio tracker
 
   update-homelab-ops:
+    name: Update homelab-ops Portfolio Tracker Version
     needs:
       - release
       - build
@@ -249,8 +250,7 @@ jobs:
     with:
       app_name: portfolio-tracker
       image_tag: ${{ needs.release.outputs.version }}
-      runner: ubuntu-latest
-      update_chart: false
+      runner: portfolio-tracker-runner
     secrets:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}

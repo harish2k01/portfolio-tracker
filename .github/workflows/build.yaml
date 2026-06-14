@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: portfolio-tracker-runner
     steps:
       - name: Checkout
         uses: actions/checkout@v4
