@@ -25,6 +25,7 @@ type ImportSipSuggestion = {
   assetId: string;
   assetName: string;
   amount: number;
+  importedAmount: number;
   referenceMonth: string;
   action: "CREATE" | "UPDATE" | "LINK";
   existingAmount: number | null;
@@ -51,6 +52,7 @@ export function TransactionEntry({
   const [isConvertingSip, setIsConvertingSip] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [sipSuggestions, setSipSuggestions] = useState<ImportSipSuggestion[]>([]);
+  const [selectedSipAssetIds, setSelectedSipAssetIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -95,7 +97,9 @@ export function TransactionEntry({
       }
 
       setImportSummary(payload);
-      setSipSuggestions(payload.sipSuggestions ?? []);
+      const suggestions = (payload.sipSuggestions ?? []) as ImportSipSuggestion[];
+      setSipSuggestions(suggestions);
+      setSelectedSipAssetIds(suggestions.map((suggestion) => suggestion.assetId));
       await loadTransactions();
       await onChanged();
     } catch {
@@ -125,14 +129,24 @@ export function TransactionEntry({
     await onChanged();
   }
 
-  async function confirmSipSuggestion(suggestion: ImportSipSuggestion) {
+  async function confirmSelectedSipSuggestions() {
+    const selectedSuggestions = sipSuggestions.filter((suggestion) =>
+      selectedSipAssetIds.includes(suggestion.assetId),
+    );
+
+    if (!selectedSuggestions.length) {
+      return;
+    }
+
     setIsConvertingSip(true);
     setError("");
 
     const response = await fetch("/api/imports/sip-suggestions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(suggestion),
+      body: JSON.stringify({
+        suggestions: selectedSuggestions.map(({ assetId, amount }) => ({ assetId, amount })),
+      }),
     });
     const payload = await response.json();
     setIsConvertingSip(false);
@@ -142,7 +156,8 @@ export function TransactionEntry({
       return;
     }
 
-    setSipSuggestions((current) => current.filter((item) => item.assetId !== suggestion.assetId));
+    setSipSuggestions([]);
+    setSelectedSipAssetIds([]);
     setImportSummary((current) =>
       current
         ? {
@@ -153,6 +168,27 @@ export function TransactionEntry({
     );
     await loadTransactions();
     await onChanged();
+  }
+
+  function toggleSipSuggestion(assetId: string) {
+    setSelectedSipAssetIds((current) =>
+      current.includes(assetId)
+        ? current.filter((id) => id !== assetId)
+        : [...current, assetId],
+    );
+  }
+
+  function toggleAllSipSuggestions() {
+    setSelectedSipAssetIds((current) =>
+      current.length === sipSuggestions.length
+        ? []
+        : sipSuggestions.map((suggestion) => suggestion.assetId),
+    );
+  }
+
+  function closeSipSuggestions() {
+    setSipSuggestions([]);
+    setSelectedSipAssetIds([]);
   }
 
   function openTransactionFromKeyboard(event: KeyboardEvent<HTMLDivElement>, assetId: string) {
@@ -313,71 +349,89 @@ export function TransactionEntry({
         onConfirm={() => void handleDelete()}
       />
       <ConfirmDialog
-        open={Boolean(sipSuggestions[0])}
-        title={sipSuggestions[0]?.action === "UPDATE" ? "Update SIP from import?" : sipSuggestions[0]?.action === "LINK" ? "Link imported transactions?" : "Create SIP from import?"}
-        description={
-          sipSuggestions[0]
-            ? `${sipSuggestionActionText(sipSuggestions[0])} using ${sipSuggestions[0].referenceMonth} as the latest reference month.`
-            : undefined
-        }
-        confirmLabel={sipSuggestions[0]?.action === "UPDATE" ? "Update SIP" : sipSuggestions[0]?.action === "LINK" ? "Link to SIP" : "Create SIP"}
-        cancelLabel="Keep as lumpsum"
+        open={sipSuggestions.length > 0}
+        title="Review identified SIPs"
+        description="Select the detected monthly investments to create, update, or link as SIPs. Suggested SIP amounts include stamp duty."
+        confirmLabel={`Apply selected (${selectedSipAssetIds.length})`}
+        cancelLabel="Keep all as lumpsum"
         size="large"
         isBusy={isConvertingSip}
-        onClose={() => setSipSuggestions((current) => current.slice(1))}
-        onConfirm={() => {
-          const suggestion = sipSuggestions[0];
-
-          if (suggestion) {
-            void confirmSipSuggestion(suggestion);
-          }
-        }}
+        confirmDisabled={!selectedSipAssetIds.length}
+        onClose={closeSipSuggestions}
+        onConfirm={() => void confirmSelectedSipSuggestions()}
       >
-        {sipSuggestions[0] ? (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold text-white">{sipSuggestions[0].assetName}</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  All {sipSuggestions[0].totalAvailableTransactions} available buy transactions for this fund will be marked as SIP.
-                </p>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-slate-400">
+              All available buy transactions for each selected fund will be marked as SIP.
+            </p>
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-white">
+              <input
+                type="checkbox"
+                checked={selectedSipAssetIds.length === sipSuggestions.length}
+                onChange={toggleAllSipSuggestions}
+              />
+              Select all
+            </label>
+          </div>
+          <div className="overflow-x-auto rounded-md border border-white/10">
+            <div className="min-w-[900px]">
+              <div className="grid grid-cols-[2.5rem_minmax(240px,1.6fr)_0.7fr_0.8fr_0.8fr_0.8fr_0.7fr] bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                <span />
+                <span>Fund</span>
+                <span>Action</span>
+                <span>Reference</span>
+                <span className="text-right">Imported net</span>
+                <span className="text-right">SIP incl. duty</span>
+                <span className="text-right">Transactions</span>
               </div>
-              <div className="text-right">
-                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Latest monthly amount</p>
-                <p className="mt-1 text-lg font-semibold text-amber-200">{formatCurrency(sipSuggestions[0].amount)}</p>
-              </div>
-            </div>
-            <div className="overflow-hidden rounded-md border border-white/10">
-              <div className="grid grid-cols-3 bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                <span>Date</span>
-                <span className="text-right">Units</span>
-                <span className="text-right">Amount</span>
-              </div>
-              {sipSuggestions[0].referenceTransactions.map((transaction) => (
-                <div key={transaction.id} className="grid grid-cols-3 border-t border-white/10 px-3 py-2">
-                  <span>{transaction.date}</span>
-                  <span className="text-right">{transaction.units.toFixed(3)}</span>
-                  <span className="text-right font-semibold text-white">{formatCurrency(transaction.amount)}</span>
-                </div>
+              {sipSuggestions.map((suggestion) => (
+                <label
+                  key={suggestion.assetId}
+                  className="grid cursor-pointer grid-cols-[2.5rem_minmax(240px,1.6fr)_0.7fr_0.8fr_0.8fr_0.8fr_0.7fr] items-center border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSipAssetIds.includes(suggestion.assetId)}
+                    onChange={() => toggleSipSuggestion(suggestion.assetId)}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-white">{suggestion.assetName}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {suggestion.referenceTransactions.length} transactions in latest month
+                    </p>
+                  </div>
+                  <Badge variant={suggestion.action === "CREATE" ? "default" : "muted"}>
+                    {suggestion.action === "CREATE"
+                      ? "Create"
+                      : suggestion.action === "UPDATE"
+                        ? "Update"
+                        : "Link"}
+                  </Badge>
+                  <span className="text-slate-300">{suggestion.referenceMonth}</span>
+                  <span className="text-right text-slate-300">
+                    {formatCurrency(suggestion.importedAmount, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                  <span className="text-right font-semibold text-white">
+                    {formatCurrency(suggestion.amount, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                  <span className="text-right font-semibold text-white">
+                    {suggestion.totalAvailableTransactions}
+                  </span>
+                </label>
               ))}
             </div>
           </div>
-        ) : null}
+        </div>
       </ConfirmDialog>
     </section>
   );
-}
-
-function sipSuggestionActionText(suggestion: ImportSipSuggestion) {
-  if (suggestion.action === "UPDATE") {
-    return `The latest imported month totals ${formatCurrency(suggestion.amount)}, instead of the current SIP amount of ${formatCurrency(suggestion.existingAmount ?? 0)}.`;
-  }
-
-  if (suggestion.action === "LINK") {
-    return `New transactions match the existing ${formatCurrency(suggestion.amount)} SIP.`;
-  }
-
-  return `The latest imported month totals ${formatCurrency(suggestion.amount)} and can be tracked as a SIP.`;
 }
 
 function SummaryMetric({

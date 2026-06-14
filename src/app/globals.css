@@ -90,12 +90,42 @@ body {
   color: var(--foreground);
 }
 
-.app-header,
-.app-menu {
+.app-header {
   background: #16212e;
   border-color: #263545;
   color: #ffffff;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+}
+
+.app-menu {
+  background: #243140;
+  border-color: #344456;
+  color: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.28);
+}
+
+.app-menu-item {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+}
+
+.app-menu-item svg {
+  color: #d7e0e9 !important;
+}
+
+.app-menu-item:hover,
+.app-menu-item-active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.app-menu-danger {
+  color: #ff728a !important;
+}
+
+.app-menu-danger:hover {
+  background: rgba(231, 43, 77, 0.12) !important;
+  color: #ff8ca0 !important;
 }
 
 .header-control {
@@ -190,10 +220,14 @@ body {
   background: rgba(255, 255, 255, 0.96) !important;
 }
 
-.theme-light .app-header,
-.theme-light .app-menu {
+.theme-light .app-header {
   background: #16212e !important;
   border-color: #263545 !important;
+}
+
+.theme-light .app-menu {
+  background: #243140 !important;
+  border-color: #344456 !important;
 }
 
 .theme-light .app-header .text-white,
@@ -209,10 +243,6 @@ body {
 .theme-light .app-header .text-slate-400,
 .theme-light .app-menu .text-slate-500 {
   color: #b8c1cc !important;
-}
-
-.theme-light .app-menu [class~="bg-white/12"] {
-  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .theme-light .modal-panel {

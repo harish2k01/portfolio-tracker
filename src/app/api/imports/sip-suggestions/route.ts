@@ -11,20 +11,34 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     assetId?: string;
     amount?: number;
+    suggestions?: Array<{ assetId?: string; amount?: number }>;
   };
 
-  if (!body.assetId || !body.amount) {
+  const suggestions = body.suggestions?.length
+    ? body.suggestions
+    : [{ assetId: body.assetId, amount: body.amount }];
+
+  if (suggestions.some((suggestion) => !suggestion.assetId || !suggestion.amount)) {
     return Response.json({ error: "Asset and SIP amount are required." }, { status: 400 });
   }
 
   try {
-    const result = await applyImportSipSuggestion({
-      userId: user.id,
-      assetId: body.assetId,
-      amount: body.amount,
-    });
+    const results = [];
 
-    return Response.json(result);
+    for (const suggestion of suggestions) {
+      results.push(
+        await applyImportSipSuggestion({
+          userId: user.id,
+          assetId: suggestion.assetId!,
+          amount: suggestion.amount!,
+        }),
+      );
+    }
+
+    return Response.json({
+      results,
+      converted: results.reduce((sum, result) => sum + result.converted, 0),
+    });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "Unable to create SIP from import." },

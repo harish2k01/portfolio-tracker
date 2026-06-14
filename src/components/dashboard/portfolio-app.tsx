@@ -211,10 +211,8 @@ export function PortfolioApp({ user }: { user: AppUser }) {
                         key={section.id}
                         type="button"
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
-                          isActive
-                            ? "bg-white/12 text-white"
-                            : "text-slate-200 hover:bg-white/[0.09] hover:text-white",
+                          "app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
+                          isActive && "app-menu-item-active",
                         )}
                         onClick={() => switchSection(section.id)}
                       >
@@ -225,7 +223,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
                   })}
                   <button
                     type="button"
-                    className="mt-2 flex w-full items-center gap-3 rounded-md border-t border-white/10 px-3 py-2.5 text-left text-sm font-medium text-rose-200 transition hover:bg-rose-400/10 hover:text-rose-100"
+                    className="app-menu-danger mt-2 flex w-full items-center gap-3 rounded-md border-t border-white/10 px-3 py-2.5 text-left text-sm font-medium transition"
                     onClick={() => {
                       setMenuOpen(false);
                       setResetOpen(true);
@@ -236,7 +234,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
+                    className="app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition"
                     onClick={() => signOut({ callbackUrl: "/login" })}
                   >
                     <LogOut className="h-4 w-4" aria-hidden />

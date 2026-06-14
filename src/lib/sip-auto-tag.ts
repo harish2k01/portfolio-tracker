@@ -1,5 +1,6 @@
 import type { Sip } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { calculateGrossInvestmentAmount } from "@/lib/analytics";
 import { nextSipDueDate } from "@/lib/portfolio";
 
 export async function autoTagSipTransactions(userId: string, sipId?: string) {
@@ -31,7 +32,16 @@ async function tagTransactionsForSip(userId: string, sip: Sip) {
     orderBy: { tradeDate: "asc" },
   });
   const matching = candidates.filter((transaction) => {
-    return Math.abs(Number(transaction.amount) - sipAmount) <= tolerance;
+    const amount =
+      transaction.externalSource && Number(transaction.stampDuty) === 0
+        ? calculateGrossInvestmentAmount(
+            Number(transaction.amount),
+            "MUTUAL_FUND",
+            "SIP_INSTALLMENT",
+          )
+        : Number(transaction.amount);
+
+    return Math.abs(amount - sipAmount) <= tolerance;
   });
 
   if (!matching.length) {

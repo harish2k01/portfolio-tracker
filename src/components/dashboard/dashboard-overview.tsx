@@ -22,7 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
-const colors = ["#0787e5", "#47adf1", "#80c8fa", "#00a866", "#f3a325", "#e72b4d"];
+const allocationPalettes = {
+  "Asset split": ["#0787e5", "#00a866", "#f3a325"],
+  "Market cap split": ["#6246ea", "#0787e5", "#00a866"],
+  "Sector allocation": ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"],
+} as const;
 const assetClassOrder = ["Equity", "Debt", "Commodities"] as const;
 const portfolioRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
 
@@ -215,6 +219,7 @@ function AllocationCard({
   onSelect: (name: string) => void;
 }) {
   const shownData = normalizeKnownAllocations(data);
+  const colors = allocationPalettes[title as keyof typeof allocationPalettes] ?? allocationPalettes["Sector allocation"];
 
   return (
     <Card className="glass-panel overflow-hidden animate-in">

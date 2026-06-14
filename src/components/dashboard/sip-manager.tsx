@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const colors = ["#0787e5", "#47adf1", "#80c8fa", "#00a866", "#f3a325", "#e72b4d"];
+const colors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"];
 const selectClass =
   "h-10 w-full rounded-md border border-slate-300/15 bg-black/[0.22] px-3 text-sm text-white outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
 

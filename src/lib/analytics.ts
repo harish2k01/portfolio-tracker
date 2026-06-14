@@ -79,6 +79,24 @@ export function calculateNetInvestmentAmount(amount: number, stampDuty: number) 
   return Math.max(Number((amount - stampDuty).toFixed(2)), 0);
 }
 
+export function calculateGrossInvestmentAmount(
+  netAmount: number,
+  assetType?: AssetType | null,
+  type?: TransactionType | null,
+) {
+  if (!isStampDutyApplicable(assetType, type)) {
+    return Number(netAmount.toFixed(2));
+  }
+
+  let grossAmount = netAmount;
+
+  for (let index = 0; index < 3; index += 1) {
+    grossAmount = netAmount + calculateStampDuty(grossAmount, assetType, type);
+  }
+
+  return Number(grossAmount.toFixed(2));
+}
+
 export function calculateUnits(amount: number, price: number, stampDuty = 0, precision = 3) {
   if (!price) {
     return 0;
