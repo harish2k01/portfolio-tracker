@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { nextSipDueDate, serializeAsset } from "@/lib/portfolio";
-import { calculateGrossInvestmentAmount } from "@/lib/analytics";
+import { inferImportedMutualFundDebitAmount } from "@/lib/analytics";
 
 export type ImportSipSuggestion = {
   assetId: string;
@@ -61,12 +61,7 @@ export async function detectImportedSipSuggestions(
       const importedAmount = roundCurrency(
         referenceTransactions.reduce((sum, transaction) => sum + Number(transaction.amount), 0),
       );
-      const amount = roundCurrency(
-        referenceTransactions.reduce(
-          (sum, transaction) => sum + importedSipDebitAmount(Number(transaction.amount)),
-          0,
-        ),
-      );
+      const amount = importedSipDebitAmount(importedAmount);
       const existingSip = sips.find((sip) => sip.assetId === assetTransactions[0].assetId);
       const existingAmount = existingSip ? Number(existingSip.amount) : null;
       const action =
@@ -198,5 +193,5 @@ function roundCurrency(value: number) {
 }
 
 function importedSipDebitAmount(amount: number) {
-  return calculateGrossInvestmentAmount(amount, "MUTUAL_FUND", "SIP_INSTALLMENT");
+  return inferImportedMutualFundDebitAmount(amount);
 }

@@ -38,7 +38,7 @@ export function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
       <button className="absolute inset-0 cursor-default" type="button" aria-label={cancelLabel} onClick={onClose} />
-      <div className={`modal-panel relative max-h-[90vh] w-full overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5 shadow-xl ${size === "large" ? "max-w-6xl" : "max-w-md"}`}>
+      <div className={`modal-panel relative max-h-[90vh] w-full overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5 shadow-xl ${size === "large" ? "max-w-7xl" : "max-w-md"}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <span className={tone === "danger" ? "rounded-lg bg-rose-400/15 p-2 text-rose-200" : "rounded-lg bg-blue-500/10 p-2 text-blue-600"}>
