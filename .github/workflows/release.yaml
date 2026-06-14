@@ -173,17 +173,27 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
 
       - name: Create GitHub release
+        uses: actions/github-script@v7
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.semantic.outputs.tag }}
-        shell: bash
-        run: |
-          set -euo pipefail
+          TARGET_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+            const body = fs.readFileSync(
+              `${process.env.RUNNER_TEMP}/release-notes.md`,
+              "utf8",
+            );
 
-          gh release create "$TAG" \
-            --target "${{ github.event.pull_request.merge_commit_sha }}" \
-            --title "$TAG" \
-            --notes-file "$RUNNER_TEMP/release-notes.md"
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.TAG,
+              target_commitish: process.env.TARGET_SHA,
+              name: process.env.TAG,
+              body,
+            });
 
   build:
     needs: release
