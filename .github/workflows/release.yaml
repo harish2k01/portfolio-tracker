@@ -19,7 +19,7 @@ concurrency:
 jobs:
   release:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: portfolio-tracker-runner
     outputs:
       tag: ${{ steps.semantic.outputs.tag }}
       version: ${{ steps.semantic.outputs.version }}
@@ -187,15 +187,12 @@ jobs:
 
   build:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: portfolio-tracker-runner
     steps:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -241,16 +238,16 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=Self-hosted portfolio tracker
 
-  update-homelab-ops:
-    needs:
-      - release
-      - build
-    uses: harish2k01/homelab-ops/.github/workflows/update-version.yaml@main
-    with:
-      app_name: portfolio-tracker
-      image_tag: ${{ needs.release.outputs.version }}
-      runner: ubuntu-latest
-      update_chart: false
-    secrets:
-      GH_APP_ID: ${{ secrets.GH_APP_ID }}
-      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+  # update-homelab-ops:
+  #   name: Update homelab-ops Portfolio Tracker Version
+  #   needs:
+  #     - release
+  #     - build
+  #   uses: harish2k01/homelab-ops/.github/workflows/update-version.yaml@main
+  #   with:
+  #     app_name: portfolio-tracker
+  #     image_tag: ${{ needs.release.outputs.version }}
+  #     runner: portfolio-tracker-runner
+  #   secrets:
+  #     GH_APP_ID: ${{ secrets.GH_APP_ID }}
+  #     GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
