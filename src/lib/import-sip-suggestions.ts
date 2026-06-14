@@ -61,7 +61,13 @@ export async function detectImportedSipSuggestions(
       const importedAmount = roundCurrency(
         referenceTransactions.reduce((sum, transaction) => sum + Number(transaction.amount), 0),
       );
-      const amount = importedSipDebitAmount(importedAmount);
+      const amount = roundCurrency(
+        referenceTransactions.reduce(
+          (sum, transaction) =>
+            sum + importedSipDebitAmount(Number(transaction.amount), transaction.externalSource),
+          0,
+        ),
+      );
       const existingSip = sips.find((sip) => sip.assetId === assetTransactions[0].assetId);
       const existingAmount = existingSip ? Number(existingSip.amount) : null;
       const action =
@@ -192,6 +198,9 @@ function roundCurrency(value: number) {
   return Number(value.toFixed(2));
 }
 
-function importedSipDebitAmount(amount: number) {
-  return inferImportedMutualFundDebitAmount(amount);
+function importedSipDebitAmount(amount: number, externalSource: string | null) {
+  return inferImportedMutualFundDebitAmount(
+    amount,
+    externalSource === "mf-order-history" ? "TRUNCATED_WHOLE_RUPEE" : "PRECISE",
+  );
 }

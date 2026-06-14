@@ -1,9 +1,10 @@
 import type { AssetType, SipFrequency, TransactionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { assetIdentity } from "@/lib/assets";
+import { assetIdentity, resolveAssetSchemeCode } from "@/lib/assets";
 import {
   fetchHistoricalInvestmentPrices,
   fetchInvestmentDetails,
+  resolveMutualFundScheme,
   type DatedPricePoint,
 } from "@/lib/market-data";
 import {
@@ -142,13 +143,17 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
   return Promise.all(
     rows.map(async (row) => {
       try {
+        const schemeCode =
+          row.type === "MUTUAL_FUND" && !row.schemeCode
+            ? await resolveAndPersistMutualFundScheme(row.assetId, row.name)
+            : row.schemeCode;
         const quote = await withTimeout(
           fetchInvestmentDetails({
             type: row.type,
-            schemeCode: row.schemeCode,
+            schemeCode,
             symbol: row.symbol,
           }),
-          3500,
+          8000,
         );
         const currentPrice = quote.value ?? row.currentPrice;
         const currentValue = currentPrice ? row.quantity * currentPrice : 0;
@@ -166,8 +171,13 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           currentValue,
           gain,
           gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
-          sectorAllocation: quote.sectorAllocation ?? inferSectorAllocation(row.name, category),
-          marketCapAllocation: quote.marketCapAllocation ?? inferMarketCapAllocation(row.name, category),
+          schemeCode,
+          sectorAllocation:
+            quote.sectorAllocation ??
+            (row.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(row.name, category)),
+          marketCapAllocation:
+            quote.marketCapAllocation ??
+            (row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, category)),
         };
       } catch {
         const currentPrice = row.currentPrice;
@@ -181,8 +191,10 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           currentValue,
           gain,
           gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
-          sectorAllocation: inferSectorAllocation(row.name, row.category),
-          marketCapAllocation: inferMarketCapAllocation(row.name, row.category),
+          sectorAllocation:
+            row.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(row.name, row.category),
+          marketCapAllocation:
+            row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, row.category),
         };
       }
     }),
@@ -321,10 +333,14 @@ async function getPortfolioTimeline(userId: string) {
         .filter((point) => Number.isFinite(point.value) && point.value > 0);
 
       try {
+        const schemeCode =
+          asset.type === "MUTUAL_FUND" && !asset.schemeCode
+            ? await resolveAssetSchemeCode(asset)
+            : asset.schemeCode;
         const providerPrices = await withFallbackTimeout(
           fetchHistoricalInvestmentPrices({
             type: asset.type,
-            schemeCode: asset.schemeCode,
+            schemeCode,
             symbol: asset.symbol,
             startDate,
             endDate: addDays(endDate, 1),
@@ -633,6 +649,37 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
       setTimeout(() => reject(new Error("Provider timed out.")), timeoutMs);
     }),
   ]);
+}
+
+async function resolveAndPersistMutualFundScheme(assetId: string, name: string) {
+  const resolved = await resolveMutualFundScheme(name);
+
+  if (!resolved?.schemeCode) {
+    return null;
+  }
+
+  const existing = await prisma.asset.findUnique({
+    where: { schemeCode: resolved.schemeCode },
+    select: { id: true },
+  });
+
+  if (!existing || existing.id === assetId) {
+    try {
+      await prisma.asset.update({
+        where: { id: assetId },
+        data: {
+          schemeCode: resolved.schemeCode,
+          name: resolved.name,
+          category: resolved.category,
+          amc: resolved.amc,
+        },
+      });
+    } catch {
+      // Concurrent dashboard requests can resolve the same imported scheme.
+    }
+  }
+
+  return resolved.schemeCode;
 }
 
 function weightedProviderAllocation(

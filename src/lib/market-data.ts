@@ -184,8 +184,8 @@ function isIndiaYahooSymbol(symbol?: string) {
 function normalizeFundFamily(name: string) {
   return name
     .toLowerCase()
-    .replace(/\b(direct|regular)\s+plan\b/g, "")
-    .replace(/\b(growth|idcw|dividend)\s+(option|plan)?\b/g, "")
+    .replace(/\b(direct|regular)(?:\s+plan)?\b/g, "")
+    .replace(/\b(growth|idcw|dividend)(?:\s+(option|plan))?\b/g, "")
     .replace(/\b(option|plan|fund|scheme)\b/g, "")
     .replace(/[-–]/g, " ")
     .replace(/\s+/g, " ")
@@ -222,7 +222,7 @@ export async function searchMutualFunds(query: string): Promise<InvestmentSearch
   let response: Response;
 
   try {
-    response = await fetch(
+    response = await fetchWithRetry(
       `https://api.mfapi.in/mf/search?q=${encodeURIComponent(query.trim())}`,
       { next: { revalidate: 60 * 60 * 12 } },
     );
@@ -256,6 +256,45 @@ export async function searchMutualFunds(query: string): Promise<InvestmentSearch
   }
 
   return [...byFamily.values()].slice(0, 8);
+}
+
+export async function resolveMutualFundScheme(
+  name: string,
+): Promise<InvestmentSearchResult | null> {
+  const simplified = name
+    .replace(/\b(direct|regular)\s*(plan)?\b/gi, " ")
+    .replace(/\b(growth|idcw|dividend)\s*(option|plan)?\b/gi, " ")
+    .replace(/\b(mutual fund|fund)\b/gi, " ")
+    .replace(/[-–]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const queries = [...new Set([name, simplified].filter((query) => query.length >= 2))];
+  const candidateGroups = await Promise.all(
+    queries.map((query) => withFallbackTimeout(searchMutualFunds(query), 7000, [])),
+  );
+  const target = normalizeFundFamily(name);
+  const targetTokens = new Set(target.split(" ").filter(Boolean));
+  const ranked = candidateGroups
+    .flat()
+    .filter((candidate) => candidate.schemeCode)
+    .map((candidate) => {
+      const candidateFamily = normalizeFundFamily(candidate.name);
+      const candidateTokens = new Set(candidateFamily.split(" ").filter(Boolean));
+      const overlap = [...targetTokens].filter((token) => candidateTokens.has(token)).length;
+      const coverage = targetTokens.size ? overlap / targetTokens.size : 0;
+      const exactFamily = candidateFamily === target;
+
+      return {
+        candidate,
+        score:
+          coverage * 100 +
+          (exactFamily ? 100 : 0) +
+          fundVariantScore(candidate.name),
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return ranked[0]?.score >= 85 ? ranked[0].candidate : null;
 }
 
 export async function searchStocksAndEtfs(query: string): Promise<InvestmentSearchResult[]> {
@@ -319,7 +358,7 @@ export async function fetchMutualFundDetails(
   const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - days);
 
-  const enrichedPromise = withFallbackTimeout(fetchMfDataDetails(schemeCode), 1800, null);
+  const enrichedPromise = withFallbackTimeout(fetchMfDataDetails(schemeCode), 5000, null);
   const payload = await fetchMfApiHistory(schemeCode, startDate, endDate);
   const points =
     payload.data
@@ -429,7 +468,7 @@ async function fetchMfApiHistory(schemeCode: string, startDate: Date, endDate: D
 
   for (const url of urls) {
     try {
-      const response = await fetch(url, { next: { revalidate: 60 * 60 * 6 } });
+      const response = await fetchWithRetry(url, { next: { revalidate: 60 * 60 * 6 } });
 
       if (response.ok) {
         return (await response.json()) as MfApiResponse;
@@ -644,6 +683,36 @@ function withFallbackTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback
       setTimeout(() => resolve(fallback), timeoutMs);
     }),
   ]);
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit & { next?: { revalidate: number } },
+  attempts = 2,
+) {
+  let lastResponse: Response | null = null;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, init);
+      lastResponse = response;
+
+      if (response.ok || response.status < 500) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+  }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Provider request failed.");
 }
 
 async function fetchYahooSummary(symbol: string) {

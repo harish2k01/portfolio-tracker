@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Input } from "@/components/ui/input";
 
 type ImportSummary = {
   parsed: number;
@@ -186,6 +187,16 @@ export function TransactionEntry({
     );
   }
 
+  function updateSipSuggestionAmount(assetId: string, amount: number) {
+    setSipSuggestions((current) =>
+      current.map((suggestion) =>
+        suggestion.assetId === assetId
+          ? { ...suggestion, amount: Number.isFinite(amount) ? Math.max(amount, 0) : 0 }
+          : suggestion,
+      ),
+    );
+  }
+
   function closeSipSuggestions() {
     setSipSuggestions([]);
     setSelectedSipAssetIds([]);
@@ -240,18 +251,6 @@ export function TransactionEntry({
               <span>Tagged SIP {importSummary.taggedSipTransactions}</span>
             </div>
           ) : null}
-          {dashboard ? (
-            <div className="grid gap-3 md:grid-cols-3">
-              <SummaryMetric label="Invested amount" value={formatCurrency(dashboard.summary.investedAmount)} />
-              <SummaryMetric label="Current amount" value={formatCurrency(dashboard.summary.totalValue)} />
-              <SummaryMetric
-                label="Profit / loss"
-                value={`${dashboard.summary.gains >= 0 ? "+" : ""}${formatCurrency(dashboard.summary.gains)}`}
-                tone={dashboard.summary.gains >= 0 ? "positive" : "negative"}
-              />
-            </div>
-          ) : null}
-
           {transactions.length ? (
             <div className="overflow-hidden rounded-lg border border-white/10 bg-black/[0.12]">
               <div className="hidden grid-cols-[0.7fr_minmax(0,1.5fr)_0.65fr_0.65fr_0.7fr_0.8fr_0.8fr_0.8fr_5rem] border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 xl:grid">
@@ -376,22 +375,23 @@ export function TransactionEntry({
           </div>
           <div className="overflow-x-auto rounded-md border border-white/10">
             <div className="min-w-[1040px]">
-              <div className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_8rem_6rem] items-center gap-3 bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              <div className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
                 <span />
                 <span>Fund</span>
                 <span>Action</span>
                 <span>Reference</span>
                 <span className="text-right">Allocated value</span>
-                <span className="text-right">SIP debit</span>
+                <span className="text-right">SIP debit (editable)</span>
                 <span className="text-right">Transactions</span>
               </div>
               {sipSuggestions.map((suggestion) => (
-                <label
+                <div
                   key={suggestion.assetId}
-                  className="grid cursor-pointer grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_8rem_6rem] items-center gap-3 border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
+                  className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
                 >
                   <input
                     type="checkbox"
+                    className="cursor-pointer"
                     checked={selectedSipAssetIds.includes(suggestion.assetId)}
                     onChange={() => toggleSipSuggestion(suggestion.assetId)}
                   />
@@ -418,38 +418,26 @@ export function TransactionEntry({
                       maximumFractionDigits: 2,
                     })}
                   </span>
-                  <span className="whitespace-nowrap text-right font-semibold text-white">
-                    {formatCurrency(suggestion.amount)}
-                  </span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={suggestion.amount}
+                    className="h-9 text-right font-semibold"
+                    aria-label={`SIP debit for ${suggestion.assetName}`}
+                    onChange={(event) =>
+                      updateSipSuggestionAmount(suggestion.assetId, Number(event.target.value))
+                    }
+                  />
                   <span className="text-right font-semibold text-white">
                     {suggestion.totalAvailableTransactions}
                   </span>
-                </label>
+                </div>
               ))}
             </div>
           </div>
         </div>
       </ConfirmDialog>
     </section>
-  );
-}
-
-function SummaryMetric({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "positive" | "negative";
-}) {
-  const toneClass =
-    tone === "positive" ? "text-emerald-300" : tone === "negative" ? "text-rose-300" : "text-white";
-
-  return (
-    <div className="rounded-lg border border-white/10 bg-black/[0.12] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className={`mt-2 text-xl font-semibold ${toneClass}`}>{value}</p>
-    </div>
   );
 }

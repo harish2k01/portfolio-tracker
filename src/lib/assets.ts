@@ -1,6 +1,6 @@
 import type { Asset, AssetType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { InvestmentSearchResult } from "@/lib/market-data";
+import { resolveMutualFundScheme, type InvestmentSearchResult } from "@/lib/market-data";
 
 export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset> {
   if (input.type === "MUTUAL_FUND") {
@@ -74,4 +74,39 @@ export function assetIdentity(asset: Pick<Asset, "type" | "schemeCode" | "symbol
     schemeCode: asset.schemeCode,
     symbol: asset.symbol,
   };
+}
+
+export async function resolveAssetSchemeCode(asset: Asset) {
+  if (asset.type !== "MUTUAL_FUND" || asset.schemeCode) {
+    return asset.schemeCode;
+  }
+
+  const resolved = await resolveMutualFundScheme(asset.name);
+
+  if (!resolved?.schemeCode) {
+    return null;
+  }
+
+  const existing = await prisma.asset.findUnique({
+    where: { schemeCode: resolved.schemeCode },
+    select: { id: true },
+  });
+
+  if (!existing || existing.id === asset.id) {
+    try {
+      await prisma.asset.update({
+        where: { id: asset.id },
+        data: {
+          schemeCode: resolved.schemeCode,
+          name: resolved.name,
+          category: resolved.category,
+          amc: resolved.amc,
+        },
+      });
+    } catch {
+      // Another request may have attached this provider identity first.
+    }
+  }
+
+  return resolved.schemeCode;
 }

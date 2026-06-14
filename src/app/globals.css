@@ -138,6 +138,61 @@ body {
   background: #2a3949 !important;
 }
 
+.badge-default {
+  border-color: rgba(7, 135, 229, 0.3);
+  background: rgba(7, 135, 229, 0.1);
+  color: #006fc4;
+}
+
+.badge-success {
+  border-color: rgba(0, 168, 102, 0.3);
+  background: rgba(0, 168, 102, 0.1);
+  color: #007c4b;
+}
+
+.badge-warning {
+  border-color: rgba(211, 132, 0, 0.32);
+  background: rgba(243, 163, 37, 0.13);
+  color: #9a5e00;
+}
+
+.badge-muted {
+  border-color: var(--line-strong);
+  background: var(--panel-soft);
+  color: var(--foreground);
+}
+
+.badge-danger {
+  border-color: rgba(231, 43, 77, 0.3);
+  background: rgba(231, 43, 77, 0.1);
+  color: #bd1636;
+}
+
+.theme-dark .badge-default,
+.theme-dark .badge-success,
+.theme-dark .badge-warning,
+.theme-dark .badge-muted,
+.theme-dark .badge-danger {
+  color: #f8fafc;
+}
+
+button:not(:disabled),
+a[href],
+[role="button"],
+select,
+summary,
+label[for],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 .theme-light .text-white,
 .theme-light .text-slate-50,
 .theme-light .text-slate-100 {

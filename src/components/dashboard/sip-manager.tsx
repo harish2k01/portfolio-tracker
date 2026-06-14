@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 const colors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"];
 const selectClass =
@@ -31,6 +32,7 @@ export function SipManager({
   const [startDate, setStartDate] = useState("");
   const [status, setStatus] = useState<SipStatus>("ACTIVE");
   const [deleteTarget, setDeleteTarget] = useState<SipRow | null>(null);
+  const [activeChartId, setActiveChartId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const activeSips = useMemo(() => sips.filter((sip) => sip.status === "ACTIVE"), [sips]);
   const chartData = useMemo(
@@ -128,8 +130,17 @@ export function SipManager({
                     <button
                       key={item.id}
                       type="button"
-                      className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md py-1 text-left hover:bg-white/[0.045]"
+                      className={cn(
+                        "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2 text-left transition",
+                        activeChartId === item.id
+                          ? "bg-white/[0.06]"
+                          : activeChartId
+                            ? "opacity-35"
+                            : "hover:bg-white/[0.045]",
+                      )}
                       onClick={() => onOpenSip(item.id)}
+                      onMouseEnter={() => setActiveChartId(item.id)}
+                      onMouseLeave={() => setActiveChartId(null)}
                     >
                       <span
                         className="h-3 w-3 rounded-full"
@@ -155,9 +166,16 @@ export function SipManager({
                       cornerRadius={chartData.length > 1 ? 8 : 0}
                       stroke="#101827"
                       strokeWidth={4}
+                      onMouseEnter={(_, index) => setActiveChartId(chartData[index]?.id ?? null)}
+                      onMouseLeave={() => setActiveChartId(null)}
                     >
                       {chartData.map((item, index) => (
-                        <Cell key={item.id} fill={colors[index % colors.length]} />
+                        <Cell
+                          key={item.id}
+                          fill={colors[index % colors.length]}
+                          opacity={!activeChartId || activeChartId === item.id ? 1 : 0.18}
+                          className="cursor-pointer transition-opacity"
+                        />
                       ))}
                     </Pie>
                   </PieChart>
@@ -177,7 +195,19 @@ export function SipManager({
                     const percentage = totalMonthly ? (item.amount / totalMonthly) * 100 : 0;
 
                     return (
-                      <div key={item.id} className="space-y-2">
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "cursor-pointer space-y-2 rounded-md p-2 transition",
+                          activeChartId === item.id
+                            ? "bg-white/[0.06]"
+                            : activeChartId
+                              ? "opacity-35"
+                              : "",
+                        )}
+                        onMouseEnter={() => setActiveChartId(item.id)}
+                        onMouseLeave={() => setActiveChartId(null)}
+                      >
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="truncate font-semibold text-white">{item.name}</span>
                           <span className="font-semibold text-white">{percentage.toFixed(0)}%</span>
@@ -213,7 +243,7 @@ export function SipManager({
         <CardContent>
           {sips.length ? (
             <div className="overflow-hidden rounded-lg border border-white/10 bg-black/[0.12]">
-              <div className="hidden grid-cols-[1.6fr_0.65fr_0.65fr_0.6fr_auto] border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
+              <div className="hidden grid-cols-[minmax(280px,1.6fr)_minmax(110px,0.65fr)_minmax(125px,0.65fr)_minmax(100px,0.6fr)_auto] gap-4 border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
                 <span>Fund</span>
                 <span className="text-right">Amount</span>
                 <span className="text-right">Next due</span>
@@ -225,7 +255,7 @@ export function SipManager({
                   key={sip.id}
                   role="button"
                   tabIndex={0}
-                  className="grid w-full cursor-pointer gap-3 border-b border-white/10 px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.06] lg:grid-cols-[1.6fr_0.65fr_0.65fr_0.6fr_auto] lg:items-center"
+                  className="grid w-full cursor-pointer gap-4 border-b border-white/10 px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.06] lg:grid-cols-[minmax(280px,1.6fr)_minmax(110px,0.65fr)_minmax(125px,0.65fr)_minmax(100px,0.6fr)_auto] lg:items-center"
                   onClick={() => onOpenSip(sip.id)}
                   onKeyDown={(event) => openSipFromKeyboard(event, sip.id)}
                 >
