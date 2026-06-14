@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { FormEvent, useEffect, useState } from "react";
-import { ShieldCheck, UserPlus } from "lucide-react";
+import { ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,13 @@ type AdminUser = {
   createdAt: string;
 };
 
-export function AdminSettings() {
+export function AdminSettings({
+  onResetPortfolio,
+  isResetting,
+}: {
+  onResetPortfolio: () => void;
+  isResetting: boolean;
+}) {
   const [signupEnabled, setSignupEnabled] = useState(false);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [currentAdminId, setCurrentAdminId] = useState("");
@@ -198,6 +204,28 @@ export function AdminSettings() {
               </Button>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="glass-panel xl:col-span-2">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5 text-[var(--negative)]" />
+            <CardTitle>Portfolio Data</CardTitle>
+          </div>
+          <CardDescription>Remove all transactions, SIPs, holdings, and portfolio history for your account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 rounded-lg border border-[var(--negative)]/25 bg-[var(--negative-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">Start from scratch</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">Your login and user account remain active.</p>
+            </div>
+            <Button type="button" variant="danger" disabled={isResetting} onClick={onResetPortfolio}>
+              <Trash2 className="h-4 w-4" aria-hidden />
+              Reset portfolio data
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </section>

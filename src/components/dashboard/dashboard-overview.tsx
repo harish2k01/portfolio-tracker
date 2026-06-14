@@ -17,6 +17,7 @@ import {
 import { Activity, CalendarClock, IndianRupee, Landmark, PiggyBank, TrendingUp } from "lucide-react";
 import { formatCompactCurrency, formatCurrency } from "@/lib/analytics";
 import { assetTypeLabel } from "@/lib/labels";
+import { cn } from "@/lib/utils";
 import type { AllocationPoint, HoldingRow, PortfolioDashboard, PortfolioTimelinePoint } from "@/types/portfolio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -218,6 +219,7 @@ function AllocationCard({
   emptyText: string;
   onSelect: (name: string) => void;
 }) {
+  const [activeName, setActiveName] = useState<string | null>(null);
   const shownData = normalizeKnownAllocations(data);
   const colors = allocationPalettes[title as keyof typeof allocationPalettes] ?? allocationPalettes["Sector allocation"];
 
@@ -243,15 +245,18 @@ function AllocationCard({
                     cornerRadius={shownData.length > 1 ? 7 : 0}
                     stroke="var(--panel)"
                     strokeWidth={4}
+                    onMouseLeave={() => setActiveName(null)}
+                    onMouseEnter={(_, index) => setActiveName(shownData[index]?.name ?? null)}
                   >
                     {shownData.map((point, index) => (
-                      <Cell key={point.name} fill={colors[index % colors.length]} />
+                      <Cell
+                        key={point.name}
+                        fill={colors[index % colors.length]}
+                        opacity={!activeName || activeName === point.name ? 1 : 0.2}
+                        className="cursor-pointer transition-opacity"
+                      />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value) => [`${Number(value).toFixed(2)}%`, "Allocation"]}
-                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -268,8 +273,17 @@ function AllocationCard({
                 <button
                   key={point.name}
                   type="button"
-                  className="grid w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition hover:bg-white/[0.045]"
+                  className={cn(
+                    "grid w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition",
+                    activeName === point.name
+                      ? "bg-white/[0.06]"
+                      : activeName
+                        ? "opacity-35"
+                        : "hover:bg-white/[0.045]",
+                  )}
                   onClick={() => onSelect(point.name)}
+                  onMouseEnter={() => setActiveName(point.name)}
+                  onMouseLeave={() => setActiveName(null)}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span

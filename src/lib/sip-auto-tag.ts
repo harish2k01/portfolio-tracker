@@ -34,7 +34,12 @@ async function tagTransactionsForSip(userId: string, sip: Sip) {
   const matching = candidates.filter((transaction) => {
     const amount =
       transaction.externalSource && Number(transaction.stampDuty) === 0
-        ? inferImportedMutualFundDebitAmount(Number(transaction.amount))
+        ? inferImportedMutualFundDebitAmount(
+            Number(transaction.amount),
+            transaction.externalSource === "mf-order-history"
+              ? "TRUNCATED_WHOLE_RUPEE"
+              : "PRECISE",
+          )
         : Number(transaction.amount);
 
     return Math.abs(amount - sipAmount) <= tolerance;

@@ -1,4 +1,5 @@
 import type { Asset } from "@prisma/client";
+import { resolveAssetSchemeCode } from "@/lib/assets";
 import { prisma } from "@/lib/prisma";
 import {
   getUserAssetTransactions,
@@ -42,9 +43,11 @@ export async function GET(
 
 async function safeFetchDetails(asset: Asset, range: ChartRange) {
   try {
+    const schemeCode = await resolveAssetSchemeCode(asset);
+
     return await withTimeout(
       fetchInvestmentDetails(
-        { type: asset.type, schemeCode: asset.schemeCode, symbol: asset.symbol },
+        { type: asset.type, schemeCode, symbol: asset.symbol },
         range,
       ),
       25000,

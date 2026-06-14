@@ -97,11 +97,22 @@ export function calculateGrossInvestmentAmount(
   return Number(grossAmount.toFixed(2));
 }
 
-export function inferImportedMutualFundDebitAmount(allocatedAmount: number) {
-  // Tradebooks derive allocated value from rounded units and NAV, so the exact
-  // post-duty value can differ by a few paise from the original whole-rupee debit.
+export function inferImportedMutualFundDebitAmount(
+  allocatedAmount: number,
+  amountFormat: "PRECISE" | "TRUNCATED_WHOLE_RUPEE" = "PRECISE",
+) {
+  // Precision tradebooks differ by paise because units and NAV are rounded.
+  // Whole-rupee order histories truncate the post-duty allocated amount.
+  const inferredDebit = calculateGrossInvestmentAmount(
+    allocatedAmount,
+    "MUTUAL_FUND",
+    "SIP_INSTALLMENT",
+  );
+
   return Math.max(
-    Math.round(calculateGrossInvestmentAmount(allocatedAmount, "MUTUAL_FUND", "SIP_INSTALLMENT")),
+    amountFormat === "TRUNCATED_WHOLE_RUPEE"
+      ? Math.ceil(inferredDebit)
+      : Math.round(inferredDebit),
     0,
   );
 }

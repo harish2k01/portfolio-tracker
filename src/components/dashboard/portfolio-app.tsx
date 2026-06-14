@@ -14,7 +14,6 @@ import {
   Search,
   Settings,
   Sun,
-  Trash2,
   WalletCards,
   X,
 } from "lucide-react";
@@ -139,145 +138,149 @@ export function PortfolioApp({ user }: { user: AppUser }) {
         theme === "light" ? "theme-light bg-[#fbfcfd]" : "theme-dark bg-[#111827]",
       )}
     >
-      <div className="mx-auto flex min-h-screen w-full max-w-[1560px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="app-header sticky top-0 z-30 mb-6 border px-4 py-3 animate-in">
-          <div className="flex items-center justify-between gap-4">
+      <div className="mx-auto grid min-h-screen w-full max-w-[1680px] lg:grid-cols-[248px_minmax(0,1fr)]">
+        {menuOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-sm lg:hidden"
+            aria-label="Close navigation"
+            onClick={() => setMenuOpen(false)}
+          />
+        ) : null}
+
+        <aside
+          className={cn(
+            "app-menu fixed inset-y-0 left-0 z-50 flex w-[248px] -translate-x-full flex-col border-r p-3 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+            menuOpen && "translate-x-0",
+          )}
+        >
+          <div className="flex items-center justify-between gap-2 px-1 py-2">
             <button
               type="button"
               className="flex min-w-0 items-center gap-3 rounded-md text-left outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/40"
               onClick={() => switchSection("dashboard")}
               aria-label="Go to dashboard"
             >
-              <Image
-                src="/logo.svg"
-                alt=""
-                width={44}
-                height={44}
-                className="shrink-0 rounded-full"
-                priority
-              />
-              <div className="min-w-0">
-                <h1 className="truncate text-lg font-semibold leading-tight text-white">
-                  Portfolio Tracker
-                </h1>
-                <p className="truncate text-sm text-slate-400">{displayName}</p>
-              </div>
+              <Image src="/logo.svg" alt="" width={38} height={38} className="shrink-0 rounded-full" priority />
+              <span className="truncate text-base font-semibold text-white">Portfolio Tracker</span>
             </button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="header-control lg:hidden"
+              aria-label="Close navigation"
+              onClick={() => setMenuOpen(false)}
+            >
+              <X className="h-5 w-5" aria-hidden />
+            </Button>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="header-control"
-                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                title={theme === "dark" ? "Light mode" : "Dark mode"}
-                onClick={toggleTheme}
-              >
-                {theme === "dark" ? <Sun className="h-5 w-5" aria-hidden /> : <Moon className="h-5 w-5" aria-hidden />}
-              </Button>
-            <div className="relative">
-              {menuOpen ? (
+          <div className="mx-1 mt-4 border-b border-white/15 px-2 pb-4">
+            <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+            <p className="mt-1 truncate text-xs text-slate-400">{user.email ?? "Signed in"}</p>
+          </div>
+
+          <nav className="mt-4 space-y-1" aria-label="Primary navigation">
+            {sections.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+
+              return (
                 <button
+                  key={section.id}
                   type="button"
-                  className="fixed inset-0 z-[45] cursor-default"
-                  aria-label="Close menu"
-                  onClick={() => setMenuOpen(false)}
-                />
-              ) : null}
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="header-control relative z-[60]"
-                aria-label={menuOpen ? "Close menu" : "Open menu"}
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((open) => !open)}
-              >
-                {menuOpen ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
-              </Button>
-              {menuOpen ? (
-                <nav className="app-menu absolute right-0 top-12 z-[60] w-72 rounded-lg border p-2 shadow-xl animate-in">
-                  <div className="mb-2 border-b border-white/10 px-3 py-2">
-                    <p className="truncate text-sm font-semibold text-white">{displayName}</p>
-                    <p className="text-xs text-slate-500">Signed in</p>
-                  </div>
-                  {sections.map((section) => {
-                    const Icon = section.icon;
-                    const isActive = activeSection === section.id;
+                  className={cn(
+                    "app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
+                    isActive && "app-menu-item-active",
+                  )}
+                  onClick={() => switchSection(section.id)}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                  {section.label}
+                </button>
+              );
+            })}
+          </nav>
 
-                    return (
-                      <button
-                        key={section.id}
-                        type="button"
-                        className={cn(
-                          "app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
-                          isActive && "app-menu-item-active",
-                        )}
-                        onClick={() => switchSection(section.id)}
-                      >
-                        <Icon className="h-4 w-4" aria-hidden />
-                        {section.label}
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    className="app-menu-danger mt-2 flex w-full items-center gap-3 rounded-md border-t border-white/10 px-3 py-2.5 text-left text-sm font-medium transition"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setResetOpen(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                    Reset portfolio data
-                  </button>
-                  <button
-                    type="button"
-                    className="app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition"
-                    onClick={() => signOut({ callbackUrl: "/login" })}
-                  >
-                    <LogOut className="h-4 w-4" aria-hidden />
-                    Sign out
-                  </button>
-                </nav>
-              ) : null}
-            </div>
-            </div>
+          <div className="mt-auto space-y-1 border-t border-white/15 pt-3">
+            <button
+              type="button"
+              className="app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition"
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+            <button
+              type="button"
+              className="app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-4 w-4" aria-hidden />
+              Sign out
+            </button>
           </div>
-        </header>
+        </aside>
 
-        {isLoading ? <LoadingOverlay /> : null}
+        <div className="min-w-0 px-4 py-4 sm:px-6 lg:px-8">
+          <header className="app-header sticky top-0 z-30 mb-5 flex items-center justify-between gap-4 rounded-lg border px-3 py-2 lg:hidden">
+            <button
+              type="button"
+              className="flex min-w-0 items-center gap-2 text-left"
+              onClick={() => switchSection("dashboard")}
+              aria-label="Go to dashboard"
+            >
+              <Image src="/logo.svg" alt="" width={34} height={34} className="shrink-0 rounded-full" priority />
+              <span className="truncate text-sm font-semibold text-white">Portfolio Tracker</span>
+            </button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="header-control"
+              aria-label="Open navigation"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
+            >
+              <Menu className="h-5 w-5" aria-hidden />
+            </Button>
+          </header>
 
-        {error ? (
-          <div className="mb-5 rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-            {error}
-          </div>
-        ) : null}
+          {isLoading ? <LoadingOverlay /> : null}
 
-        {activeSection === "dashboard" ? (
-          <DashboardOverview
-            dashboard={dashboard}
-            onOpenTransactions={() => switchSection("search")}
-            onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
-          />
-        ) : null}
-        {activeSection === "sips" ? (
-          <SipManager
-            sips={dashboard?.sips ?? []}
-            onChanged={refreshDashboard}
-            onOpenSip={(sipId) => setDetailTarget({ kind: "sip", id: sipId })}
-          />
-        ) : null}
-        {activeSection === "transactions" ? (
-          <TransactionEntry
-            dashboard={dashboard}
-            onChanged={refreshDashboard}
-            onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
-          />
-        ) : null}
-        {activeSection === "search" ? <FundSearch onChanged={refreshDashboard} /> : null}
-        {activeSection === "admin" && user.role === "ADMIN" ? <AdminSettings /> : null}
+          {error ? (
+            <div className="mb-5 rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+              {error}
+            </div>
+          ) : null}
+
+          {activeSection === "dashboard" ? (
+            <DashboardOverview
+              dashboard={dashboard}
+              onOpenTransactions={() => switchSection("search")}
+              onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
+            />
+          ) : null}
+          {activeSection === "sips" ? (
+            <SipManager
+              sips={dashboard?.sips ?? []}
+              onChanged={refreshDashboard}
+              onOpenSip={(sipId) => setDetailTarget({ kind: "sip", id: sipId })}
+            />
+          ) : null}
+          {activeSection === "transactions" ? (
+            <TransactionEntry
+              dashboard={dashboard}
+              onChanged={refreshDashboard}
+              onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
+            />
+          ) : null}
+          {activeSection === "search" ? <FundSearch onChanged={refreshDashboard} /> : null}
+          {activeSection === "admin" && user.role === "ADMIN" ? (
+            <AdminSettings onResetPortfolio={() => setResetOpen(true)} isResetting={isResetting} />
+          ) : null}
+        </div>
       </div>
       <AssetDetailPanel target={detailTarget} onClose={() => setDetailTarget(null)} onChanged={refreshDashboard} />
       <ConfirmDialog
