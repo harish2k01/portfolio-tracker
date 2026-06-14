@@ -97,6 +97,15 @@ export function calculateGrossInvestmentAmount(
   return Number(grossAmount.toFixed(2));
 }
 
+export function inferImportedMutualFundDebitAmount(allocatedAmount: number) {
+  // Tradebooks derive allocated value from rounded units and NAV, so the exact
+  // post-duty value can differ by a few paise from the original whole-rupee debit.
+  return Math.max(
+    Math.round(calculateGrossInvestmentAmount(allocatedAmount, "MUTUAL_FUND", "SIP_INSTALLMENT")),
+    0,
+  );
+}
+
 export function calculateUnits(amount: number, price: number, stampDuty = 0, precision = 3) {
   if (!price) {
     return 0;

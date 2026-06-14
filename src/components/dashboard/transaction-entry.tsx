@@ -351,7 +351,7 @@ export function TransactionEntry({
       <ConfirmDialog
         open={sipSuggestions.length > 0}
         title="Review identified SIPs"
-        description="Select the detected monthly investments to create, update, or link as SIPs. Suggested SIP amounts include stamp duty."
+        description="Select the detected monthly investments to create, update, or link as SIPs. SIP debit amounts are inferred after 0.005% stamp duty."
         confirmLabel={`Apply selected (${selectedSipAssetIds.length})`}
         cancelLabel="Keep all as lumpsum"
         size="large"
@@ -375,20 +375,20 @@ export function TransactionEntry({
             </label>
           </div>
           <div className="overflow-x-auto rounded-md border border-white/10">
-            <div className="min-w-[900px]">
-              <div className="grid grid-cols-[2.5rem_minmax(240px,1.6fr)_0.7fr_0.8fr_0.8fr_0.8fr_0.7fr] bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <div className="min-w-[1040px]">
+              <div className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_8rem_6rem] items-center gap-3 bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
                 <span />
                 <span>Fund</span>
                 <span>Action</span>
                 <span>Reference</span>
-                <span className="text-right">Imported net</span>
-                <span className="text-right">SIP incl. duty</span>
+                <span className="text-right">Allocated value</span>
+                <span className="text-right">SIP debit</span>
                 <span className="text-right">Transactions</span>
               </div>
               {sipSuggestions.map((suggestion) => (
                 <label
                   key={suggestion.assetId}
-                  className="grid cursor-pointer grid-cols-[2.5rem_minmax(240px,1.6fr)_0.7fr_0.8fr_0.8fr_0.8fr_0.7fr] items-center border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
+                  className="grid cursor-pointer grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_8rem_6rem] items-center gap-3 border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
                 >
                   <input
                     type="checkbox"
@@ -401,25 +401,25 @@ export function TransactionEntry({
                       {suggestion.referenceTransactions.length} transactions in latest month
                     </p>
                   </div>
-                  <Badge variant={suggestion.action === "CREATE" ? "default" : "muted"}>
+                  <Badge
+                    className="w-fit justify-self-start whitespace-nowrap"
+                    variant={suggestion.action === "CREATE" ? "default" : "muted"}
+                  >
                     {suggestion.action === "CREATE"
                       ? "Create"
                       : suggestion.action === "UPDATE"
                         ? "Update"
                         : "Link"}
                   </Badge>
-                  <span className="text-slate-300">{suggestion.referenceMonth}</span>
-                  <span className="text-right text-slate-300">
+                  <span className="whitespace-nowrap text-slate-300">{suggestion.referenceMonth}</span>
+                  <span className="whitespace-nowrap text-right text-slate-300">
                     {formatCurrency(suggestion.importedAmount, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
                   </span>
-                  <span className="text-right font-semibold text-white">
-                    {formatCurrency(suggestion.amount, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                  <span className="whitespace-nowrap text-right font-semibold text-white">
+                    {formatCurrency(suggestion.amount)}
                   </span>
                   <span className="text-right font-semibold text-white">
                     {suggestion.totalAvailableTransactions}
