@@ -11,6 +11,8 @@ import {
   LogOut,
   Menu,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings,
   Sun,
@@ -53,13 +55,14 @@ export function PortfolioApp({ user }: { user: AppUser }) {
   const [dashboard, setDashboard] = useState<PortfolioDashboard | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const sections =
     user.role === "ADMIN"
-      ? [...baseSections, { id: "admin" as const, label: "Admin", icon: Settings }]
+      ? [...baseSections, { id: "admin" as const, label: "Settings", icon: Settings }]
       : baseSections;
   const displayName = user.name?.trim() || user.email?.split("@")[0] || "User";
 
@@ -93,6 +96,8 @@ export function PortfolioApp({ user }: { user: AppUser }) {
     if (stored === "dark" || stored === "light") {
       setTheme(stored);
     }
+
+    setSidebarCollapsed(window.localStorage.getItem("portfolio-tracker-sidebar") === "collapsed");
   }, []);
 
   function switchSection(section: Section) {
@@ -104,6 +109,14 @@ export function PortfolioApp({ user }: { user: AppUser }) {
     setTheme((current) => {
       const next = current === "dark" ? "light" : "dark";
       window.localStorage.setItem("portfolio-tracker-theme", next);
+      return next;
+    });
+  }
+
+  function toggleSidebar() {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      window.localStorage.setItem("portfolio-tracker-sidebar", next ? "collapsed" : "expanded");
       return next;
     });
   }
@@ -138,7 +151,14 @@ export function PortfolioApp({ user }: { user: AppUser }) {
         theme === "light" ? "theme-light bg-[#fbfcfd]" : "theme-dark bg-[#111827]",
       )}
     >
-      <div className="mx-auto grid min-h-screen w-full max-w-[1680px] lg:grid-cols-[248px_minmax(0,1fr)]">
+      <div
+        className={cn(
+          "mx-auto grid min-h-screen w-full max-w-[1680px] transition-[grid-template-columns] duration-300 ease-out",
+          sidebarCollapsed
+            ? "lg:grid-cols-[76px_minmax(0,1fr)]"
+            : "lg:grid-cols-[248px_minmax(0,1fr)]",
+        )}
+      >
         {menuOpen ? (
           <button
             type="button"
@@ -150,20 +170,43 @@ export function PortfolioApp({ user }: { user: AppUser }) {
 
         <aside
           className={cn(
-            "app-menu fixed inset-y-0 left-0 z-50 flex w-[248px] -translate-x-full flex-col border-r p-3 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+            "app-menu fixed inset-y-0 left-0 z-50 flex w-[268px] -translate-x-full flex-col border-r p-3 transition-[width,transform,padding] duration-300 ease-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
             menuOpen && "translate-x-0",
+            sidebarCollapsed && "lg:w-[76px] lg:p-2",
           )}
         >
-          <div className="flex items-center justify-between gap-2 px-1 py-2">
+          <div
+            className={cn(
+              "flex items-center justify-between gap-2 px-1 py-2",
+              sidebarCollapsed && "lg:flex-col lg:px-0",
+            )}
+          >
             <button
               type="button"
-              className="flex min-w-0 items-center gap-3 rounded-md text-left outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/40"
+              className={cn(
+                "flex min-w-0 items-center gap-3 rounded-md text-left outline-none transition duration-200 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--focus)]",
+                sidebarCollapsed && "lg:justify-center",
+              )}
               onClick={() => switchSection("dashboard")}
               aria-label="Go to dashboard"
             >
               <Image src="/logo.svg" alt="" width={38} height={38} className="shrink-0 rounded-full" priority />
-              <span className="truncate text-base font-semibold text-white">Portfolio Tracker</span>
+              <span className={cn("sidebar-primary truncate text-base font-semibold", sidebarCollapsed && "lg:hidden")}>
+                Portfolio Tracker
+              </span>
             </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle hidden lg:inline-flex"
+              aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+              title={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+              aria-expanded={!sidebarCollapsed}
+              onClick={toggleSidebar}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden /> : <PanelLeftClose className="h-5 w-5" aria-hidden />}
+            </Button>
             <Button
               type="button"
               variant="secondary"
@@ -176,9 +219,9 @@ export function PortfolioApp({ user }: { user: AppUser }) {
             </Button>
           </div>
 
-          <div className="mx-1 mt-4 border-b border-white/15 px-2 pb-4">
-            <p className="truncate text-sm font-semibold text-white">{displayName}</p>
-            <p className="mt-1 truncate text-xs text-slate-400">{user.email ?? "Signed in"}</p>
+          <div className={cn("sidebar-divider mx-1 mt-4 border-b px-2 pb-4", sidebarCollapsed && "lg:hidden")}>
+            <p className="sidebar-primary truncate text-sm font-semibold">{displayName}</p>
+            <p className="sidebar-muted mt-1 truncate text-xs">{user.email ?? "Signed in"}</p>
           </div>
 
           <nav className="mt-4 space-y-1" aria-label="Primary navigation">
@@ -193,32 +236,44 @@ export function PortfolioApp({ user }: { user: AppUser }) {
                   className={cn(
                     "app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
                     isActive && "app-menu-item-active",
+                    sidebarCollapsed && "lg:justify-center lg:px-0",
                   )}
                   onClick={() => switchSection(section.id)}
+                  title={sidebarCollapsed ? section.label : undefined}
                 >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  {section.label}
+                  <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                  <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>{section.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          <div className="mt-auto space-y-1 border-t border-white/15 pt-3">
+          <div className="sidebar-divider mt-auto space-y-1 border-t pt-3">
             <button
               type="button"
-              className="app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition"
+              className={cn(
+                "app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
+                sidebarCollapsed && "lg:justify-center lg:px-0",
+              )}
               onClick={toggleTheme}
+              title={sidebarCollapsed ? (theme === "dark" ? "Light mode" : "Dark mode") : undefined}
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
-              {theme === "dark" ? "Light mode" : "Dark mode"}
+              {theme === "dark" ? <Sun className="h-[18px] w-[18px] shrink-0" aria-hidden /> : <Moon className="h-[18px] w-[18px] shrink-0" aria-hidden />}
+              <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </span>
             </button>
             <button
               type="button"
-              className="app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition"
+              className={cn(
+                "app-menu-item flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition",
+                sidebarCollapsed && "lg:justify-center lg:px-0",
+              )}
               onClick={() => signOut({ callbackUrl: "/login" })}
+              title={sidebarCollapsed ? "Sign out" : undefined}
             >
-              <LogOut className="h-4 w-4" aria-hidden />
-              Sign out
+              <LogOut className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>Sign out</span>
             </button>
           </div>
         </aside>
@@ -255,31 +310,33 @@ export function PortfolioApp({ user }: { user: AppUser }) {
             </div>
           ) : null}
 
-          {activeSection === "dashboard" ? (
-            <DashboardOverview
-              dashboard={dashboard}
-              onOpenTransactions={() => switchSection("search")}
-              onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
-            />
-          ) : null}
-          {activeSection === "sips" ? (
-            <SipManager
-              sips={dashboard?.sips ?? []}
-              onChanged={refreshDashboard}
-              onOpenSip={(sipId) => setDetailTarget({ kind: "sip", id: sipId })}
-            />
-          ) : null}
-          {activeSection === "transactions" ? (
-            <TransactionEntry
-              dashboard={dashboard}
-              onChanged={refreshDashboard}
-              onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
-            />
-          ) : null}
-          {activeSection === "search" ? <FundSearch onChanged={refreshDashboard} /> : null}
-          {activeSection === "admin" && user.role === "ADMIN" ? (
-            <AdminSettings onResetPortfolio={() => setResetOpen(true)} isResetting={isResetting} />
-          ) : null}
+          <div key={activeSection} className="page-transition">
+            {activeSection === "dashboard" ? (
+              <DashboardOverview
+                dashboard={dashboard}
+                onOpenTransactions={() => switchSection("search")}
+                onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
+              />
+            ) : null}
+            {activeSection === "sips" ? (
+              <SipManager
+                sips={dashboard?.sips ?? []}
+                onChanged={refreshDashboard}
+                onOpenSip={(sipId) => setDetailTarget({ kind: "sip", id: sipId })}
+              />
+            ) : null}
+            {activeSection === "transactions" ? (
+              <TransactionEntry
+                dashboard={dashboard}
+                onChanged={refreshDashboard}
+                onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
+              />
+            ) : null}
+            {activeSection === "search" ? <FundSearch onChanged={refreshDashboard} /> : null}
+            {activeSection === "admin" && user.role === "ADMIN" ? (
+              <AdminSettings onResetPortfolio={() => setResetOpen(true)} isResetting={isResetting} />
+            ) : null}
+          </div>
         </div>
       </div>
       <AssetDetailPanel target={detailTarget} onClose={() => setDetailTarget(null)} onChanged={refreshDashboard} />
@@ -300,12 +357,27 @@ export function PortfolioApp({ user }: { user: AppUser }) {
 function LoadingOverlay() {
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-[#070809]/70 backdrop-blur-sm animate-fade"
+      className="portfolio-loading-overlay fixed inset-0 z-40 flex items-center justify-center animate-fade"
       aria-live="polite"
       aria-label="Loading"
     >
-      <div className="rounded-full border border-white/10 bg-[#16212e] p-5 shadow-xl">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/15 border-t-white" />
+      <div className="portfolio-loader" role="status">
+        <div className="portfolio-loader-logo" aria-hidden>
+          <Image src="/logo.svg" alt="" width={38} height={38} priority />
+          <span />
+        </div>
+        <div className="min-w-0">
+          <p className="portfolio-loader-title">Updating portfolio</p>
+          <div className="portfolio-loader-bars" aria-hidden>
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+        <div className="portfolio-loader-progress" aria-hidden />
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ export function MetricCard({
   tone = "amber",
 }: MetricCardProps) {
   return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 transition duration-200 hover:border-[var(--line-strong)]">
+    <div className="motion-card rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 hover:border-[var(--line-strong)]">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">

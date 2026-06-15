@@ -231,8 +231,8 @@ function AllocationCard({
       </CardHeader>
       <CardContent className="p-5">
         {shownData.length ? (
-          <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center">
-            <div className="relative h-[190px]">
+          <div className="grid gap-5">
+            <div className="relative mx-auto h-[190px] w-full max-w-[230px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
