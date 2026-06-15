@@ -1,4 +1,5 @@
 import type { AssetType } from "@prisma/client";
+import { fetchAmfiMarketCapClassification } from "@/lib/amfi-classification";
 
 export type ChartRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL";
 
@@ -487,6 +488,7 @@ export async function fetchYahooDetails(
   symbol: string,
   type: AssetType,
   range: ChartRange = "1Y",
+  isin?: string | null,
 ): Promise<InvestmentQuote> {
   const config = yahooRangeMap[range];
   const response = await fetch(
@@ -513,6 +515,9 @@ export async function fetchYahooDetails(
   const latest = result?.meta?.regularMarketPrice ?? history.at(-1)?.value ?? null;
   const previous = result?.meta?.chartPreviousClose ?? history.at(0)?.value ?? latest;
   const summary = await fetchYahooSummary(symbol);
+  const amfiClassification = summary.marketCap
+    ? null
+    : await fetchAmfiMarketCapClassification(isin);
 
   return {
     name: result?.meta?.longName ?? result?.meta?.shortName ?? symbol,
@@ -524,7 +529,11 @@ export async function fetchYahooDetails(
     changePercent: latest && previous ? ((latest - previous) / previous) * 100 : null,
     history,
     sectorAllocation: summary.sector ? [{ name: summary.sector, value: 100 }] : undefined,
-    marketCapAllocation: summary.marketCap ? [{ name: marketCapBucket(summary.marketCap), value: 100 }] : undefined,
+    marketCapAllocation: summary.marketCap
+      ? [{ name: marketCapBucket(summary.marketCap), value: 100 }]
+      : amfiClassification
+        ? [{ name: amfiClassification, value: 100 }]
+        : undefined,
   };
 }
 
@@ -533,6 +542,7 @@ export async function fetchInvestmentDetails(
     type: AssetType;
     schemeCode?: string | null;
     symbol?: string | null;
+    isin?: string | null;
   },
   range: ChartRange = "1Y",
 ) {
@@ -548,7 +558,7 @@ export async function fetchInvestmentDetails(
     throw new Error("Stock or ETF symbol is required.");
   }
 
-  return fetchYahooDetails(input.symbol, input.type, range);
+  return fetchYahooDetails(input.symbol, input.type, range, input.isin);
 }
 
 export async function fetchPriceOnDate(input: {
