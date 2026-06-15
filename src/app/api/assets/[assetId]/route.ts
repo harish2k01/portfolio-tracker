@@ -1,4 +1,9 @@
 import type { Asset } from "@prisma/client";
+import {
+  inferMarketCapAllocation,
+  inferSectorAllocation,
+  parseStoredAllocation,
+} from "@/lib/allocation-metadata";
 import { resolveAssetSchemeCode } from "@/lib/assets";
 import { prisma } from "@/lib/prisma";
 import {
@@ -45,13 +50,25 @@ async function safeFetchDetails(asset: Asset, range: ChartRange) {
   try {
     const schemeCode = await resolveAssetSchemeCode(asset);
 
-    return await withTimeout(
+    const details = await withTimeout(
       fetchInvestmentDetails(
-        { type: asset.type, schemeCode, symbol: asset.symbol },
+        { type: asset.type, schemeCode, symbol: asset.symbol, isin: asset.isin },
         range,
       ),
       25000,
     );
+
+    return {
+      ...details,
+      sectorAllocation:
+        details.sectorAllocation ??
+        parseStoredAllocation(asset.sectorAllocation) ??
+        inferSectorAllocation(asset.name, details.category ?? asset.category),
+      marketCapAllocation:
+        details.marketCapAllocation ??
+        parseStoredAllocation(asset.marketCapAllocation) ??
+        inferMarketCapAllocation(asset.name, details.category ?? asset.category),
+    };
   } catch {
     return {
       name: asset.name,
@@ -64,6 +81,12 @@ async function safeFetchDetails(asset: Asset, range: ChartRange) {
       value: Number(asset.price ?? asset.nav ?? 0) || null,
       changePercent: null,
       history: [],
+      sectorAllocation:
+        parseStoredAllocation(asset.sectorAllocation) ??
+        inferSectorAllocation(asset.name, asset.category),
+      marketCapAllocation:
+        parseStoredAllocation(asset.marketCapAllocation) ??
+        inferMarketCapAllocation(asset.name, asset.category),
     };
   }
 }

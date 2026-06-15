@@ -2,6 +2,11 @@ import type { AssetType, SipFrequency, TransactionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assetIdentity, resolveAssetSchemeCode } from "@/lib/assets";
 import {
+  inferMarketCapAllocation,
+  inferSectorAllocation,
+  parseStoredAllocation,
+} from "@/lib/allocation-metadata";
+import {
   fetchHistoricalInvestmentPrices,
   fetchInvestmentDetails,
   resolveMutualFundScheme,
@@ -18,6 +23,7 @@ export type HoldingRow = {
   type: AssetType;
   assetClass: "Equity" | "Debt" | "Commodities";
   symbol?: string | null;
+  isin?: string | null;
   schemeCode?: string | null;
   category?: string | null;
   investedAmount: number;
@@ -107,6 +113,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           transaction.asset.category,
         ),
         symbol: transaction.asset.symbol,
+        isin: transaction.asset.isin,
         schemeCode: transaction.asset.schemeCode,
         category: transaction.asset.category,
         investedAmount: 0,
@@ -115,6 +122,8 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         currentValue: 0,
         gain: 0,
         gainPercent: 0,
+        sectorAllocation: parseStoredAllocation(transaction.asset.sectorAllocation),
+        marketCapAllocation: parseStoredAllocation(transaction.asset.marketCapAllocation),
       } satisfies HoldingRow);
 
     const quantity = Number(transaction.quantity);
@@ -152,6 +161,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
             type: row.type,
             schemeCode,
             symbol: row.symbol,
+            isin: row.isin,
           }),
           8000,
         );
@@ -161,6 +171,26 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         const gain = currentValue - netInvested;
         const category = quote.category ?? row.category;
         const assetClass = classifyAssetClass(row.type, row.name, category);
+        const sectorAllocation =
+          quote.sectorAllocation ??
+          row.sectorAllocation ??
+          inferSectorAllocation(row.name, category);
+        const marketCapAllocation =
+          quote.marketCapAllocation ??
+          row.marketCapAllocation ??
+          inferMarketCapAllocation(row.name, category);
+
+        if (
+          (quote.sectorAllocation?.length && !row.sectorAllocation?.length) ||
+          (quote.marketCapAllocation?.length && !row.marketCapAllocation?.length)
+        ) {
+          await persistAllocationMetadata(row.assetId, {
+            sectorAllocation: row.sectorAllocation?.length ? undefined : quote.sectorAllocation,
+            marketCapAllocation: row.marketCapAllocation?.length
+              ? undefined
+              : quote.marketCapAllocation,
+          });
+        }
 
         return {
           ...row,
@@ -172,12 +202,8 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           gain,
           gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
           schemeCode,
-          sectorAllocation:
-            quote.sectorAllocation ??
-            (row.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(row.name, category)),
-          marketCapAllocation:
-            quote.marketCapAllocation ??
-            (row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, category)),
+          sectorAllocation,
+          marketCapAllocation,
         };
       } catch {
         const currentPrice = row.currentPrice;
@@ -191,10 +217,9 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           currentValue,
           gain,
           gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
-          sectorAllocation:
-            row.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(row.name, row.category),
+          sectorAllocation: row.sectorAllocation ?? inferSectorAllocation(row.name, row.category),
           marketCapAllocation:
-            row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, row.category),
+            row.marketCapAllocation ?? inferMarketCapAllocation(row.name, row.category),
         };
       }
     }),
@@ -586,60 +611,28 @@ function classifyAssetClass(
   return "Equity";
 }
 
-function inferSectorAllocation(name: string, category?: string | null) {
-  const text = `${name} ${category ?? ""}`.toLowerCase();
-  const sectors: Array<[RegExp, string]> = [
-    [/technology|digital|it\b|software|internet|ai|artificial intelligence/, "Technology"],
-    [/bank|financial|finance|psu bank|private bank/, "Financial"],
-    [/pharma|healthcare|health care|hospital/, "Healthcare"],
-    [/infra|infrastructure|power|energy|oil|gas/, "Energy & Infrastructure"],
-    [/consumer|consumption|fmcg/, "Consumer"],
-    [/auto|automobile|transport/, "Automobile"],
-  ];
-  const match = sectors.find(([pattern]) => pattern.test(text));
-
-  return match ? [{ name: match[1], value: 100 }] : undefined;
-}
-
-function inferMarketCapAllocation(name: string, category?: string | null) {
-  const text = `${name} ${category ?? ""}`.toLowerCase();
-
-  if (/large\s*&\s*mid|large and mid/.test(text)) {
-    return [
-      { name: "Large Cap", value: 50 },
-      { name: "Mid Cap", value: 50 },
-    ];
+async function persistAllocationMetadata(
+  assetId: string,
+  metadata: {
+    sectorAllocation?: Array<{ name: string; value: number }>;
+    marketCapAllocation?: Array<{ name: string; value: number }>;
+  },
+) {
+  try {
+    await prisma.asset.update({
+      where: { id: assetId },
+      data: {
+        ...(metadata.sectorAllocation?.length
+          ? { sectorAllocation: metadata.sectorAllocation }
+          : {}),
+        ...(metadata.marketCapAllocation?.length
+          ? { marketCapAllocation: metadata.marketCapAllocation }
+          : {}),
+      },
+    });
+  } catch {
+    // Allocation enrichment is best-effort and must not block the dashboard.
   }
-
-  if (/large cap|bluechip|blue chip/.test(text)) {
-    return [{ name: "Large Cap", value: 100 }];
-  }
-
-  if (
-    /\bnifty\s*50\b|\bsensex\b|\bnifty\s*next\s*50\b|\bnasdaq\s*100\b|\bs&p\s*500\b/.test(
-      text,
-    )
-  ) {
-    return [{ name: "Large Cap", value: 100 }];
-  }
-
-  if (/mid cap/.test(text)) {
-    return [{ name: "Mid Cap", value: 100 }];
-  }
-
-  if (/small cap|micro cap/.test(text)) {
-    return [{ name: "Small Cap", value: 100 }];
-  }
-
-  if (/flexi cap|multi cap|multicap|focused/.test(text)) {
-    return [
-      { name: "Large Cap", value: 50 },
-      { name: "Mid Cap", value: 30 },
-      { name: "Small Cap", value: 20 },
-    ];
-  }
-
-  return undefined;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
