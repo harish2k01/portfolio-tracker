@@ -139,43 +139,45 @@ export function SipManager({
         </CardHeader>
         <CardContent>
           {activeSips.length ? (
-            <div className="grid gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(420px,1.1fr)]">
-              <div className="relative h-[390px] overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-5">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="amount"
-                      nameKey="name"
-                      innerRadius="58%"
-                      outerRadius="82%"
-                      paddingAngle={chartData.length > 1 ? 3 : 0}
-                      cornerRadius={chartData.length > 1 ? 8 : 0}
-                      stroke="#101827"
-                      strokeWidth={4}
-                      onMouseEnter={(_, index) => setActiveChartId(chartData[index]?.id ?? null)}
-                      onMouseLeave={() => setActiveChartId(null)}
-                    >
-                      {chartData.map((item, index) => (
-                        <Cell
-                          key={item.id}
-                          fill={colors[index % colors.length]}
-                          opacity={!activeChartId || activeChartId === item.id ? 1 : 0.18}
-                          className="cursor-pointer transition-opacity"
-                        />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Monthly</p>
-                    <p className="text-xl font-semibold text-white">{formatCurrency(totalMonthly)}</p>
+            <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(420px,1.1fr)]">
+              <div className="flex min-h-[520px] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-5">
+                <div className="relative h-[390px] w-full max-w-[430px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        dataKey="amount"
+                        nameKey="name"
+                        innerRadius="58%"
+                        outerRadius="82%"
+                        paddingAngle={chartData.length > 1 ? 3 : 0}
+                        cornerRadius={chartData.length > 1 ? 8 : 0}
+                        stroke="#101827"
+                        strokeWidth={4}
+                        onMouseEnter={(_, index) => setActiveChartId(chartData[index]?.id ?? null)}
+                        onMouseLeave={() => setActiveChartId(null)}
+                      >
+                        {chartData.map((item, index) => (
+                          <Cell
+                            key={item.id}
+                            fill={colors[index % colors.length]}
+                            opacity={!activeChartId || activeChartId === item.id ? 1 : 0.18}
+                            className="cursor-pointer transition-opacity"
+                          />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Monthly</p>
+                      <p className="text-xl font-semibold text-white">{formatCurrency(totalMonthly)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-5">
+              <div className="flex min-h-[520px] flex-col rounded-lg border border-white/10 bg-white/[0.035] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-white">Allocation</p>
@@ -183,7 +185,7 @@ export function SipManager({
                   </div>
                   <p className="text-sm font-semibold text-white">{formatCurrency(totalMonthly)} / month</p>
                 </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="mt-5 grid flex-1 content-center gap-3 sm:grid-cols-2 xl:grid-cols-1">
                   {chartData.map((item, index) => {
                     const percentage = totalMonthly ? (item.amount / totalMonthly) * 100 : 0;
 

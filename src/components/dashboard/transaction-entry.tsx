@@ -59,7 +59,7 @@ export function TransactionEntry({
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const transactionPagination = usePagination(transactions);
-  const suggestionPagination = usePagination(sipSuggestions, 5);
+  const suggestionPagination = usePagination(sipSuggestions, 10);
 
   async function loadTransactions() {
     const response = await fetch("/api/transactions", { cache: "no-store" });
