@@ -14,15 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, CalendarClock, IndianRupee, Landmark, PiggyBank, TrendingUp } from "lucide-react";
+import { Activity, CalendarClock, IndianRupee, Landmark, PiggyBank, TrendingUp, X } from "lucide-react";
 import { formatCompactCurrency, formatCurrency } from "@/lib/analytics";
-import { assetTypeLabel } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type { AllocationPoint, HoldingRow, PortfolioDashboard, PortfolioTimelinePoint } from "@/types/portfolio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 const allocationPalettes = {
   "Asset split": ["#0787e5", "#00a866", "#f3a325"],
@@ -52,7 +50,6 @@ const tooltipStyle = {
 };
 
 type AssetClassName = (typeof assetClassOrder)[number];
-type HoldingView = "ALL" | "MF" | "STOCKS";
 
 function useMounted() {
   return useSyncExternalStore(
@@ -277,7 +274,7 @@ function AllocationCard({
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className={cn("space-y-3", shownData.length > 5 && "max-h-[268px] overflow-y-auto pr-2")}>
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                 <span>{label}</span>
                 <span>Allocation</span>
@@ -287,7 +284,7 @@ function AllocationCard({
                   key={point.name}
                   type="button"
                   className={cn(
-                    "grid w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition",
+                    "grid min-h-[44px] w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition",
                     activeName === point.name
                       ? "bg-white/[0.06]"
                       : activeName
@@ -319,74 +316,154 @@ function AllocationCard({
 }
 
 function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
+  const [showOtherStocks, setShowOtherStocks] = useState(false);
   const knownStocks = data.filter((point) => point.value > 0);
   const topStocks = knownStocks.slice(0, 5);
-  const topTotal = topStocks.reduce((sum, point) => sum + point.value, 0);
-  const otherValue = Math.max(100 - topTotal, 0);
+  const otherStocks = knownStocks.slice(5);
+  const otherValue = Number(otherStocks.reduce((sum, point) => sum + point.value, 0).toFixed(2));
   const maxValue = Math.max(...topStocks.map((point) => point.value), otherValue, 1);
+  const otherMaxValue = Math.max(...otherStocks.map((point) => point.value), 1);
 
   return (
-    <Card className="glass-panel overflow-hidden animate-in">
-      <CardHeader className="border-b border-white/10 pb-5">
-        <CardTitle className="text-2xl">Stocks concentration</CardTitle>
-        <CardDescription>
-          {knownStocks.length
-            ? `${knownStocks.length} stocks across direct holdings and fund portfolios`
-            : "Underlying stock holdings are unavailable from providers."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-5">
-        {topStocks.length ? (
-          <div className="space-y-5">
-            {topStocks.map((point, index) => (
-              <div
-                key={point.name}
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white"
-                    style={{
-                      backgroundColor: stockConcentrationColors[index % stockConcentrationColors.length],
-                      color: "#ffffff",
-                    }}
-                  >
-                    {point.name.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="truncate text-sm font-semibold text-white">{point.name}</span>
+    <>
+      <Card className="glass-panel overflow-hidden animate-in">
+        <CardHeader className="border-b border-white/10 pb-5">
+          <CardTitle className="text-2xl">Stocks concentration</CardTitle>
+          <CardDescription>
+            {knownStocks.length
+              ? `${knownStocks.length} stocks across direct holdings and fund portfolios`
+              : "Underlying stock holdings are unavailable from providers."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-5">
+          {topStocks.length ? (
+            <div className="space-y-5">
+              {topStocks.map((point, index) => (
+                <div
+                  key={point.name}
+                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white"
+                      style={{
+                        backgroundColor: stockConcentrationColors[index % stockConcentrationColors.length],
+                        color: "#ffffff",
+                      }}
+                    >
+                      {point.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="truncate text-sm font-semibold text-white">{point.name}</span>
+                  </div>
+                  <div className="relative h-9 overflow-hidden rounded-md bg-white/[0.08]">
+                    <span
+                      className="absolute inset-y-0 left-0 rounded-md"
+                      style={{
+                        width: `${Math.max((point.value / maxValue) * 100, 8)}%`,
+                        backgroundColor: "rgba(7, 135, 229, 0.22)",
+                      }}
+                    />
+                    <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-white">
+                      {point.value.toFixed(2)}%
+                    </span>
+                  </div>
                 </div>
-                <div className="relative h-9 overflow-hidden rounded-md bg-white/[0.08]">
-                  <span
-                    className="absolute inset-y-0 left-0 rounded-md"
-                    style={{
-                      width: `${Math.max((point.value / maxValue) * 100, 8)}%`,
-                      backgroundColor: "rgba(7, 135, 229, 0.22)",
-                    }}
-                  />
-                  <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-white">
-                    {point.value.toFixed(2)}%
+              ))}
+              {otherStocks.length ? (
+                <button
+                  type="button"
+                  className="grid w-full gap-3 rounded-md pt-2 text-left transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
+                  onClick={() => setShowOtherStocks(true)}
+                >
+                  <span className="px-2 text-sm font-semibold text-slate-400">Other stocks</span>
+                  <span className="relative h-8 overflow-hidden rounded-md bg-white/[0.05]">
+                    <span
+                      className="absolute inset-y-0 left-0 rounded-md bg-white/[0.08]"
+                      style={{ width: `${Math.max((otherValue / maxValue) * 100, 8)}%` }}
+                    />
+                    <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-slate-300">
+                      {otherValue.toFixed(2)}%
+                    </span>
                   </span>
-                </div>
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <EmptyState title="Underlying stock holdings are unavailable from providers for the current portfolio." />
+          )}
+        </CardContent>
+      </Card>
+
+      {showOtherStocks ? (
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label="Close other stocks"
+            onClick={() => setShowOtherStocks(false)}
+          />
+          <div className="modal-panel absolute left-1/2 top-1/2 flex max-h-[82vh] w-[min(92vw,860px)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border border-[var(--line)] bg-[var(--panel)] shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-5">
+              <div>
+                <h3 className="text-xl font-semibold text-white">Other stocks concentration</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  {otherStocks.length} stocks making up {otherValue.toFixed(2)}% of stock exposure
+                </p>
               </div>
-            ))}
-            <div className="grid gap-3 pt-2 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center">
-              <p className="text-sm font-semibold text-slate-400">Other stocks</p>
-              <div className="relative h-8 overflow-hidden rounded-md bg-white/[0.05]">
-                <span
-                  className="absolute inset-y-0 left-0 rounded-md bg-white/[0.08]"
-                  style={{ width: `${Math.max((otherValue / maxValue) * 100, otherValue ? 8 : 0)}%` }}
-                />
-                <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-slate-300">
-                  {otherValue.toFixed(2)}%
-                </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                aria-label="Close other stocks"
+                onClick={() => setShowOtherStocks(false)}
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="space-y-3">
+                {otherStocks.map((point, index) => (
+                  <div
+                    key={point.name}
+                    className="grid gap-3 rounded-md border border-[var(--line)] bg-[var(--panel-soft)] p-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)] md:items-center"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white"
+                        style={{
+                          backgroundColor: stockConcentrationColors[index % stockConcentrationColors.length],
+                          color: "#ffffff",
+                        }}
+                      >
+                        {point.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{point.name}</p>
+                        {point.amount ? (
+                          <p className="mt-1 text-xs text-slate-500">{formatCurrency(point.amount)} exposure</p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="relative h-8 overflow-hidden rounded-md bg-white/[0.08]">
+                      <span
+                        className="absolute inset-y-0 left-0 rounded-md"
+                        style={{
+                          width: `${Math.max((point.value / otherMaxValue) * 100, 8)}%`,
+                          backgroundColor: "rgba(7, 135, 229, 0.22)",
+                        }}
+                      />
+                      <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-white">
+                        {point.value.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        ) : (
-          <EmptyState title="Underlying stock holdings are unavailable from providers for the current portfolio." />
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -451,42 +528,18 @@ function sortAssetClasses(points: AllocationPoint[]) {
 export function DashboardOverview({
   dashboard,
   onOpenTransactions,
-  onOpenAsset,
+  onOpenHoldings,
 }: {
   dashboard: PortfolioDashboard | null;
   onOpenTransactions: () => void;
-  onOpenAsset: (assetId: string) => void;
+  onOpenHoldings: (filter?: string) => void;
 }) {
-  const [filter, setFilter] = useState<string | null>(null);
-  const [holdingView, setHoldingView] = useState<HoldingView>("ALL");
   const summary = dashboard?.summary;
   const holdings = useMemo(() => dashboard?.holdings ?? [], [dashboard?.holdings]);
   const assetSplit = useMemo(
     () => buildAssetSplit(dashboard?.allocations.assets ?? [], holdings),
     [dashboard?.allocations.assets, holdings],
   );
-  const typeFilteredHoldings = holdings.filter((holding) => {
-    if (holdingView === "MF") {
-      return holding.type === "MUTUAL_FUND";
-    }
-
-    if (holdingView === "STOCKS") {
-      return holding.type === "STOCK" || holding.type === "ETF";
-    }
-
-    return true;
-  });
-  const filteredHoldings = filter
-    ? typeFilteredHoldings.filter(
-        (holding) =>
-          holding.assetClass === filter ||
-          (holding.category ?? "") === filter ||
-          holding.assetAllocation?.some((point) => point.name === filter) ||
-          holding.sectorAllocation?.some((point) => point.name === filter) ||
-          holding.marketCapAllocation?.some((point) => point.name === filter),
-      )
-    : typeFilteredHoldings;
-  const holdingsPagination = usePagination(filteredHoldings);
 
   if (!dashboard || !summary) {
     return <EmptyState title="Loading portfolio..." />;
@@ -547,117 +600,25 @@ export function DashboardOverview({
           data={assetSplit}
           label="Asset class"
           emptyText="Add holdings to calculate Equity, Debt, and Commodities."
-          onSelect={(name) => {
-            setFilter(name);
-            holdingsPagination.setPage(1);
-          }}
+          onSelect={(name) => onOpenHoldings(name)}
         />
         <AllocationCard
           title="Market cap split"
           data={dashboard.allocations.marketCap}
           label="Market cap"
           emptyText="Market-cap metadata is unavailable from the provider for these holdings."
-          onSelect={(name) => {
-            setFilter(name);
-            holdingsPagination.setPage(1);
-          }}
+          onSelect={(name) => onOpenHoldings(name)}
         />
         <AllocationCard
           title="Sector allocation"
           data={dashboard.allocations.sectors}
           label="Sector"
           emptyText="Sector metadata is unavailable from the provider for these holdings."
-          onSelect={(name) => {
-            setFilter(name);
-            holdingsPagination.setPage(1);
-          }}
+          onSelect={(name) => onOpenHoldings(name)}
         />
       </div>
 
       <StockConcentrationCard data={dashboard.allocations.stockConcentration} />
-
-      <Card className="glass-panel animate-in">
-        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <CardTitle>Holdings</CardTitle>
-            <CardDescription>{filter ? `Filtered by ${filter}` : "Click a holding for full history"}</CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(["ALL", "MF", "STOCKS"] as const).map((item) => (
-              <Button
-                key={item}
-                type="button"
-                size="sm"
-                variant={holdingView === item ? "default" : "secondary"}
-                onClick={() => {
-                  setHoldingView(item);
-                  holdingsPagination.setPage(1);
-                }}
-              >
-                {item === "ALL" ? "All" : item === "MF" ? "MF" : "Stocks"}
-              </Button>
-            ))}
-            {filter ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setFilter(null);
-                  holdingsPagination.setPage(1);
-                }}
-              >
-                Clear
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredHoldings.length ? (
-            <div className="overflow-hidden rounded-lg border border-white/10">
-              <div className="hidden grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
-                <span>Holding</span>
-                <span className="text-right">Units</span>
-                <span className="text-right">Invested</span>
-                <span className="text-right">Current</span>
-                <span className="text-right">Returns</span>
-              </div>
-              {holdingsPagination.items.map((holding: HoldingRow) => (
-                <button
-                  key={holding.assetId}
-                  type="button"
-                  className="grid w-full gap-3 border-b border-white/10 px-4 py-4 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.055] lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] lg:items-center"
-                  onClick={() => onOpenAsset(holding.assetId)}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">{holding.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {holding.assetClass} / {assetTypeLabel(holding.type)}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-white lg:text-right">{holding.quantity.toFixed(3)}</p>
-                  <p className="text-sm font-semibold text-white lg:text-right">{formatCurrency(holding.investedAmount)}</p>
-                  <p className="text-sm font-semibold text-white lg:text-right">{formatCurrency(holding.currentValue)}</p>
-                  <div className="lg:text-right">
-                    <p className={holding.gain >= 0 ? "text-sm font-semibold text-emerald-300" : "text-sm font-semibold text-rose-300"}>
-                      {holding.gain >= 0 ? "+" : ""}
-                      {formatCurrency(holding.gain)}
-                    </p>
-                    <p className="text-xs text-slate-500">{holding.gainPercent.toFixed(2)}%</p>
-                  </div>
-                </button>
-              ))}
-              <TablePagination
-                {...holdingsPagination}
-                onPageChange={holdingsPagination.setPage}
-                onPageSizeChange={holdingsPagination.setPageSize}
-              />
-            </div>
-          ) : (
-            <EmptyState title={filter ? "No holdings match this allocation." : "Add transactions to see holdings here."} action={filter ? undefined : onOpenTransactions} />
-          )}
-        </CardContent>
-      </Card>
     </section>
   );
 }

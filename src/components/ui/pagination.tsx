@@ -5,9 +5,9 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type PageSize = 5 | 10 | 25 | 50 | 100 | "ALL";
+export type PageSize = 10 | 25 | 50 | 100 | "ALL";
 
-const pageSizeOptions: PageSize[] = [5, 10, 25, 50, 100, "ALL"];
+const pageSizeOptions: PageSize[] = [10, 25, 50, 100, "ALL"];
 
 export function usePagination<T>(items: readonly T[], initialPageSize: PageSize = 10) {
   const [page, setPageState] = useState(1);
@@ -63,6 +63,10 @@ export function TablePagination({
   onPageSizeChange: (pageSize: PageSize) => void;
   className?: string;
 }) {
+  if (totalItems <= 10) {
+    return null;
+  }
+
   return (
     <div
       className={cn(

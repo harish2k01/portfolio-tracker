@@ -24,6 +24,7 @@ import { AssetDetailPanel } from "@/components/dashboard/asset-detail-panel";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { FundOverviewPage, type FundOverviewTarget } from "@/components/dashboard/fund-overview-page";
 import { FundSearch } from "@/components/dashboard/fund-search";
+import { HoldingsView } from "@/components/dashboard/holdings-view";
 import { SipManager } from "@/components/dashboard/sip-manager";
 import { TransactionEntry } from "@/components/dashboard/transaction-entry";
 import { Button } from "@/components/ui/button";
@@ -39,12 +40,13 @@ type AppUser = {
   isActive: boolean;
 };
 
-type Section = "dashboard" | "sips" | "transactions" | "search" | "admin";
+type Section = "dashboard" | "holdings" | "sips" | "transactions" | "search" | "admin";
 type DetailTarget = { kind: "asset"; id: string } | { kind: "sip"; id: string };
 type Theme = "dark" | "light";
 
 const baseSections = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+  { id: "holdings", label: "Holdings", icon: WalletCards },
   { id: "sips", label: "SIPs", icon: CalendarClock },
   { id: "transactions", label: "Transactions", icon: WalletCards },
   { id: "search", label: "Search", icon: Search },
@@ -56,6 +58,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
   const [dashboard, setDashboard] = useState<PortfolioDashboard | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
   const [fundTarget, setFundTarget] = useState<FundOverviewTarget | null>(null);
+  const [holdingsFilter, setHoldingsFilter] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -104,6 +107,17 @@ export function PortfolioApp({ user }: { user: AppUser }) {
 
   function switchSection(section: Section) {
     setActiveSection(section);
+    if (section === "holdings") {
+      setHoldingsFilter(null);
+    }
+    setDetailTarget(null);
+    setFundTarget(null);
+    setMenuOpen(false);
+  }
+
+  function openHoldings(filter?: string) {
+    setHoldingsFilter(filter ?? null);
+    setActiveSection("holdings");
     setDetailTarget(null);
     setFundTarget(null);
     setMenuOpen(false);
@@ -332,6 +346,15 @@ export function PortfolioApp({ user }: { user: AppUser }) {
             ) : activeSection === "dashboard" ? (
               <DashboardOverview
                 dashboard={dashboard}
+                onOpenTransactions={() => switchSection("search")}
+                onOpenHoldings={openHoldings}
+              />
+            ) : null}
+            {!detailTarget && !fundTarget && activeSection === "holdings" ? (
+              <HoldingsView
+                dashboard={dashboard}
+                filter={holdingsFilter}
+                onFilterChange={setHoldingsFilter}
                 onOpenTransactions={() => switchSection("search")}
                 onOpenAsset={(assetId) => setFundTarget({ kind: "asset", assetId })}
               />
