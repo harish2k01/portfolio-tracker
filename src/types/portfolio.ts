@@ -46,6 +46,7 @@ export type HoldingRow = {
   currentValue: number;
   gain: number;
   gainPercent: number;
+  assetAllocation?: AllocationPoint[];
   sectorAllocation?: AllocationPoint[];
   marketCapAllocation?: AllocationPoint[];
 };

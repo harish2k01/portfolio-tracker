@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 type ImportSummary = {
   parsed: number;
@@ -57,6 +58,8 @@ export function TransactionEntry({
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const transactionPagination = usePagination(transactions);
+  const suggestionPagination = usePagination(sipSuggestions, 5);
 
   async function loadTransactions() {
     const response = await fetch("/api/transactions", { cache: "no-store" });
@@ -264,7 +267,7 @@ export function TransactionEntry({
                 <span className="text-right">Profit / loss</span>
                 <span className="text-right">Actions</span>
               </div>
-              {transactions.map((transaction) => {
+              {transactionPagination.items.map((transaction) => {
                 const holding = dashboard?.holdings.find((item) => item.assetId === transaction.asset.id);
                 const isSell = transaction.type === "SELL";
                 const currentAmount =
@@ -325,6 +328,11 @@ export function TransactionEntry({
                   </div>
                 );
               })}
+              <TablePagination
+                {...transactionPagination}
+                onPageChange={transactionPagination.setPage}
+                onPageSizeChange={transactionPagination.setPageSize}
+              />
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
@@ -384,7 +392,7 @@ export function TransactionEntry({
                 <span className="text-right">SIP debit (editable)</span>
                 <span className="text-right">Transactions</span>
               </div>
-              {sipSuggestions.map((suggestion) => (
+              {suggestionPagination.items.map((suggestion) => (
                 <div
                   key={suggestion.assetId}
                   className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
@@ -436,6 +444,12 @@ export function TransactionEntry({
               ))}
             </div>
           </div>
+          <TablePagination
+            {...suggestionPagination}
+            className="rounded-md border border-[var(--line)]"
+            onPageChange={suggestionPagination.setPage}
+            onPageSizeChange={suggestionPagination.setPageSize}
+          />
         </div>
       </ConfirmDialog>
     </section>

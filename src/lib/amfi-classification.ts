@@ -4,7 +4,7 @@ const AMFI_CLASSIFICATION_PAGE =
   "https://www.amfiindia.com/otherdata/categorisation-of-stocks";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-type MarketCapClassification = "Large Cap" | "Mid Cap" | "Small Cap";
+export type MarketCapClassification = "Large Cap" | "Mid Cap" | "Small Cap";
 
 let classificationCache:
   | {
@@ -26,6 +26,23 @@ export async function fetchAmfiMarketCapClassification(
   try {
     const values = await getClassificationMap();
     return values.get(normalizedIsin) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchAmfiMarketCapClassificationByName(
+  companyName?: string | null,
+): Promise<MarketCapClassification | null> {
+  const key = companyNameKey(companyName);
+
+  if (!key) {
+    return null;
+  }
+
+  try {
+    const values = await getClassificationMap();
+    return values.get(key) ?? null;
   } catch {
     return null;
   }
@@ -56,13 +73,21 @@ export function parseAmfiClassificationWorkbook(
     const headers = rows[headerIndex].map(normalizeHeader);
     const isinIndex = headers.indexOf("isin");
     const categoryIndex = headers.findIndex((header) => header.includes("categorization"));
+    const companyIndex = headers.findIndex((header) => header.includes("companyname"));
 
     for (const row of rows.slice(headerIndex + 1)) {
       const isin = String(row[isinIndex] ?? "").trim().toUpperCase();
+      const companyName = companyNameKey(row[companyIndex]);
       const category = normalizeCategory(String(row[categoryIndex] ?? ""));
 
-      if (isin && category) {
-        values.set(isin, category);
+      if (category) {
+        if (isin) {
+          values.set(isin, category);
+        }
+
+        if (companyName) {
+          values.set(companyName, category);
+        }
       }
     }
   }
@@ -141,6 +166,18 @@ function normalizeHeader(value: unknown) {
   return String(value ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "");
+}
+
+function companyNameKey(value: unknown) {
+  const normalized = String(value ?? "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/\b(limited|ltd|company|co)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return normalized ? `company:${normalized}` : "";
 }
 
 function normalizeCategory(value: string): MarketCapClassification | null {

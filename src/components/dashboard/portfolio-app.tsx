@@ -362,22 +362,15 @@ function LoadingOverlay() {
       aria-label="Loading"
     >
       <div className="portfolio-loader" role="status">
-        <div className="portfolio-loader-logo" aria-hidden>
-          <Image src="/logo.svg" alt="" width={38} height={38} priority />
+        <p className="portfolio-loader-title">Loading...</p>
+        <div className="portfolio-loader-bars" aria-hidden>
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
           <span />
         </div>
-        <div className="min-w-0">
-          <p className="portfolio-loader-title">Updating portfolio</p>
-          <div className="portfolio-loader-bars" aria-hidden>
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-        <div className="portfolio-loader-progress" aria-hidden />
       </div>
     </div>
   );

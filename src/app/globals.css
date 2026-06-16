@@ -386,7 +386,7 @@ select:disabled {
 }
 
 .page-transition {
-  animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .motion-card {
@@ -412,53 +412,26 @@ select:disabled {
 }
 
 .portfolio-loader {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  width: min(88vw, 250px);
-  overflow: hidden;
+  justify-content: center;
+  gap: 8px;
+  width: min(88vw, 190px);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
-  padding: 15px 17px 18px;
+  padding: 16px 20px;
   box-shadow:
     0 18px 50px rgba(23, 34, 52, 0.16),
     0 2px 8px rgba(23, 34, 52, 0.08);
   animation: loader-arrive 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.portfolio-loader-logo {
-  position: relative;
-  display: grid;
-  height: 46px;
-  width: 46px;
-  place-items: center;
-  border-radius: 50%;
-}
-
-.portfolio-loader-logo img {
-  position: relative;
-  z-index: 1;
-  animation: loader-logo-float 1.8s ease-in-out infinite;
-}
-
-.portfolio-loader-logo span {
-  position: absolute;
-  inset: 3px;
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
-  border-radius: 50%;
-  animation: loader-ring 1.8s ease-out infinite;
-}
-
 .portfolio-loader-title {
-  overflow: hidden;
   color: var(--foreground);
-  font-size: 0.875rem;
+  font-size: 0.925rem;
   font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .portfolio-loader-bars {
@@ -466,7 +439,6 @@ select:disabled {
   height: 17px;
   align-items: end;
   gap: 4px;
-  margin-top: 7px;
 }
 
 .portfolio-loader-bars span {
@@ -507,25 +479,6 @@ select:disabled {
   animation-delay: 450ms;
 }
 
-.portfolio-loader-progress {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 3px;
-  background: var(--panel-soft);
-}
-
-.portfolio-loader-progress::after {
-  position: absolute;
-  inset: 0;
-  width: 42%;
-  border-radius: 999px;
-  background: var(--accent);
-  content: "";
-  animation: loader-progress 1.35s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -550,30 +503,6 @@ select:disabled {
   }
 }
 
-@keyframes loader-logo-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes loader-ring {
-  0% {
-    opacity: 0.65;
-    transform: scale(0.82);
-  }
-
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(1.18);
-  }
-}
-
 @keyframes loader-market-bar {
   0%,
   100% {
@@ -584,16 +513,6 @@ select:disabled {
   50% {
     opacity: 1;
     transform: scaleY(1);
-  }
-}
-
-@keyframes loader-progress {
-  from {
-    transform: translateX(-110%);
-  }
-
-  to {
-    transform: translateX(340%);
   }
 }
 
