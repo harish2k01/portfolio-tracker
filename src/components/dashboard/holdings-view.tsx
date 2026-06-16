@@ -12,8 +12,8 @@ type HoldingView = "ALL" | "MF" | "STOCKS";
 
 function EmptyState({ title, action }: { title: string; action?: () => void }) {
   return (
-    <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.035] p-8 text-center">
-      <p className="text-sm text-slate-300">{title}</p>
+    <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--panel-soft)] p-8 text-center">
+      <p className="text-sm text-[var(--muted)]">{title}</p>
       {action ? (
         <Button type="button" className="mt-4" onClick={action}>
           Add investments
@@ -113,8 +113,8 @@ export function HoldingsView({
         </CardHeader>
         <CardContent>
           {filteredHoldings.length ? (
-            <div className="overflow-hidden rounded-lg border border-white/10">
-              <div className="hidden grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
+            <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
+              <div className="hidden grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] border-b border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)] lg:grid">
                 <span>Holding</span>
                 <span className="text-right">Units</span>
                 <span className="text-right">Invested</span>
@@ -125,34 +125,34 @@ export function HoldingsView({
                 <button
                   key={holding.assetId}
                   type="button"
-                  className="grid w-full gap-3 border-b border-white/10 px-4 py-4 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.055] lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] lg:items-center"
+                  className="grid w-full gap-3 border-b border-[var(--line)] px-4 py-4 text-left transition duration-200 last:border-b-0 hover:bg-[var(--row-hover)] lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] lg:items-center"
                   onClick={() => onOpenAsset(holding.assetId)}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">{holding.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">{holding.name}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
                       {holding.assetClass} / {assetTypeLabel(holding.type)}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-white lg:text-right">{holding.quantity.toFixed(3)}</p>
-                  <p className="text-sm font-semibold text-white lg:text-right">
+                  <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">{holding.quantity.toFixed(3)}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">
                     {formatCurrency(holding.investedAmount)}
                   </p>
-                  <p className="text-sm font-semibold text-white lg:text-right">
+                  <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">
                     {formatCurrency(holding.currentValue)}
                   </p>
                   <div className="lg:text-right">
                     <p
                       className={
                         holding.gain >= 0
-                          ? "text-sm font-semibold text-emerald-300"
-                          : "text-sm font-semibold text-rose-300"
+                          ? "text-sm font-semibold text-[var(--positive)]"
+                          : "text-sm font-semibold text-[var(--negative)]"
                       }
                     >
                       {holding.gain >= 0 ? "+" : ""}
                       {formatCurrency(holding.gain)}
                     </p>
-                    <p className="text-xs text-slate-500">{holding.gainPercent.toFixed(2)}%</p>
+                    <p className="text-xs text-[var(--muted)]">{holding.gainPercent.toFixed(2)}%</p>
                   </div>
                 </button>
               ))}

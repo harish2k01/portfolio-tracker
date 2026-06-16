@@ -70,18 +70,18 @@ export function TablePagination({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--panel-soft)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
+      <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
         <span>
           {startItem}-{endItem} of {totalItems}
         </span>
         <label className="flex items-center gap-2">
           <span>Rows per page</span>
           <select
-            className="h-8 rounded-md border border-[var(--line)] bg-[var(--panel)] px-2 text-xs font-medium text-[var(--foreground)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]"
+            className="h-8 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2 text-sm font-semibold text-[var(--foreground)] outline-none transition hover:border-[var(--line-strong)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]"
             value={String(pageSize)}
             onChange={(event) =>
               onPageSizeChange(
@@ -101,7 +101,7 @@ export function TablePagination({
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="mr-2 text-xs font-medium text-[var(--muted)]">
+        <span className="mr-2 text-sm font-medium text-[var(--muted)]">
           Page {page} of {totalPages}
         </span>
         <Button

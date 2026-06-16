@@ -15,10 +15,10 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 
-const colors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"];
-const marketCapColors = ["#6548e8", "#0787e5", "#00a866", "#f3a325"];
+const colors = ["#1277d3", "#536dfe", "#f0a62a", "#20a4c8", "#7c8fa6", "#8b6f47"];
+const marketCapColors = ["#5b4bda", "#1277d3", "#20a4c8", "#f0a62a"];
 const selectClass =
-  "h-10 w-full rounded-md border border-slate-300/15 bg-black/[0.22] px-3 text-sm text-white outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
+  "h-10 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 text-sm text-[var(--foreground)] outline-none transition hover:border-[var(--line-strong)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
 
 export function SipManager({
   sips,
@@ -140,7 +140,7 @@ export function SipManager({
         <CardContent>
           {activeSips.length ? (
             <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(420px,1.1fr)]">
-              <div className="flex min-h-[520px] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-5">
+              <div className="flex min-h-[520px] items-center justify-center overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
                 <div className="relative h-[390px] w-full max-w-[430px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -170,20 +170,20 @@ export function SipManager({
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Monthly</p>
-                      <p className="text-xl font-semibold text-white">{formatCurrency(totalMonthly)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Monthly</p>
+                      <p className="text-xl font-semibold text-[var(--foreground)]">{formatCurrency(totalMonthly)}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex min-h-[520px] flex-col rounded-lg border border-white/10 bg-white/[0.035] p-5">
+              <div className="flex min-h-[520px] flex-col rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-white">Allocation</p>
-                    <p className="mt-1 text-xs text-slate-500">{chartData.length} active SIPs</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">Allocation</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{chartData.length} active SIPs</p>
                   </div>
-                  <p className="text-sm font-semibold text-white">{formatCurrency(totalMonthly)} / month</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{formatCurrency(totalMonthly)} / month</p>
                 </div>
                 <div className="mt-5 grid flex-1 content-center gap-3 sm:grid-cols-2 xl:grid-cols-1">
                   {chartData.map((item, index) => {
@@ -194,9 +194,9 @@ export function SipManager({
                         key={item.id}
                         type="button"
                         className={cn(
-                          "cursor-pointer space-y-2 rounded-md border border-transparent p-3 text-left transition hover:border-white/10 hover:bg-white/[0.045]",
+                          "cursor-pointer space-y-2 rounded-lg border border-transparent p-3 text-left transition hover:border-[var(--line)] hover:bg-[var(--row-hover)]",
                           activeChartId === item.id
-                            ? "border-white/10 bg-white/[0.06]"
+                            ? "border-[var(--line)] bg-[var(--panel)]"
                             : activeChartId
                               ? "opacity-35"
                               : "",
@@ -206,13 +206,13 @@ export function SipManager({
                         onMouseLeave={() => setActiveChartId(null)}
                       >
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="min-w-0 truncate font-semibold text-white">{item.name}</span>
-                          <span className="shrink-0 font-semibold text-white">{percentage.toFixed(0)}%</span>
+                          <span className="min-w-0 truncate font-semibold text-[var(--foreground)]">{item.name}</span>
+                          <span className="shrink-0 font-semibold text-[var(--foreground)]">{percentage.toFixed(0)}%</span>
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-[var(--muted)]">
                           <span>{formatCurrency(item.amount)} monthly</span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
+                        <div className="h-2 overflow-hidden rounded-full bg-[var(--panel)]">
                           <span
                             className="block h-full"
                             style={{
@@ -227,19 +227,19 @@ export function SipManager({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-5 xl:col-span-2">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-5 xl:col-span-2">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Market cap split</p>
-                    <p className="mt-1 text-xs text-slate-500">Weighted by active SIP monthly amount</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">Market cap split</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">Weighted by active SIP monthly amount</p>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                     {marketCapData.length ? `${marketCapData.length} groups` : "Unavailable"}
                   </p>
                 </div>
                 {marketCapData.length ? (
                   <>
-                    <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-white/[0.08]">
+                    <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-[var(--panel)]">
                       {marketCapData.map((item, index) => (
                         <span
                           key={item.name}
@@ -253,20 +253,20 @@ export function SipManager({
                     </div>
                     <div className="mt-5 grid gap-3 md:grid-cols-3">
                       {marketCapData.map((item, index) => (
-                        <div key={item.name} className="rounded-md border border-white/10 bg-black/[0.1] p-3">
+                        <div key={item.name} className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-2">
                               <span
                                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                                 style={{ backgroundColor: marketCapColors[index % marketCapColors.length] }}
                               />
-                              <span className="truncate text-sm font-semibold text-white">{item.name}</span>
+                              <span className="truncate text-sm font-semibold text-[var(--foreground)]">{item.name}</span>
                             </div>
-                            <span className="shrink-0 text-sm font-semibold text-white">
+                            <span className="shrink-0 text-sm font-semibold text-[var(--foreground)]">
                               {item.value.toFixed(2)}%
                             </span>
                           </div>
-                          <p className="mt-2 text-xs text-slate-500">
+                          <p className="mt-2 text-xs text-[var(--muted)]">
                             {formatCurrency(item.amount ?? 0)} monthly exposure
                           </p>
                         </div>
@@ -274,14 +274,14 @@ export function SipManager({
                     </div>
                   </>
                 ) : (
-                  <div className="mt-5 rounded-lg border border-dashed border-white/15 p-5 text-sm text-slate-400">
+                  <div className="mt-5 rounded-lg border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted)]">
                     Market-cap metadata is unavailable for the active SIP funds.
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
+            <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center text-sm text-[var(--muted)]">
               Start SIPs from Search to build this allocation.
             </div>
           )}
@@ -295,8 +295,8 @@ export function SipManager({
         </CardHeader>
         <CardContent>
           {sips.length ? (
-            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/[0.12]">
-              <div className="hidden grid-cols-[minmax(280px,1.6fr)_minmax(110px,0.65fr)_minmax(125px,0.65fr)_minmax(100px,0.6fr)_auto] gap-4 border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
+            <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
+              <div className="hidden grid-cols-[minmax(280px,1.6fr)_minmax(110px,0.65fr)_minmax(125px,0.65fr)_minmax(100px,0.6fr)_auto] gap-4 border-b border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)] lg:grid">
                 <span>Fund</span>
                 <span className="text-right">Amount</span>
                 <span className="text-right">Next due</span>
@@ -308,22 +308,22 @@ export function SipManager({
                   key={sip.id}
                   role="button"
                   tabIndex={0}
-                  className="grid w-full cursor-pointer gap-4 border-b border-white/10 px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.06] lg:grid-cols-[minmax(280px,1.6fr)_minmax(110px,0.65fr)_minmax(125px,0.65fr)_minmax(100px,0.6fr)_auto] lg:items-center"
+                  className="grid w-full cursor-pointer gap-4 border-b border-[var(--line)] px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-[var(--row-hover)] lg:grid-cols-[minmax(280px,1.6fr)_minmax(110px,0.65fr)_minmax(125px,0.65fr)_minmax(100px,0.6fr)_auto] lg:items-center"
                   onClick={() => onOpenSip(sip.id)}
                   onKeyDown={(event) => openSipFromKeyboard(event, sip.id)}
                 >
                   <div className="min-w-0">
-                    <h4 className="truncate text-sm font-semibold text-white">{sip.asset.name}</h4>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                    <h4 className="truncate text-sm font-semibold text-[var(--foreground)]">{sip.asset.name}</h4>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
                       <CalendarDays className="h-4 w-4" aria-hidden />
                       <span>Started {sip.startDate}</span>
                     </div>
                   </div>
                   <div className="lg:text-right">
-                    <p className="text-sm font-semibold text-white">{formatCurrency(sip.amount)}</p>
-                    <p className="text-xs text-slate-500">{formatFrequency(sip.frequency)}</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{formatCurrency(sip.amount)}</p>
+                    <p className="text-xs text-[var(--muted)]">{formatFrequency(sip.frequency)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-white lg:text-right">{sip.nextDueDate ?? "NA"}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">{sip.nextDueDate ?? "NA"}</p>
                   <div>
                     <Badge variant={sip.status === "ACTIVE" ? "success" : "warning"}>
                       {sip.status}
@@ -379,7 +379,7 @@ export function SipManager({
               />
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
+            <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center text-sm text-[var(--muted)]">
               No SIP mandates.
             </div>
           )}
@@ -387,15 +387,15 @@ export function SipManager({
       </Card>
 
       {editingSip ? (
-        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
           <button className="absolute inset-0 cursor-default" type="button" aria-label="Close edit SIP" onClick={() => setEditingSip(null)} />
           <form
             className="modal-panel absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5 shadow-xl"
             onSubmit={saveEdit}
           >
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-white">Edit SIP</h3>
-              <p className="mt-1 truncate text-sm text-slate-400">{editingSip.asset.name}</p>
+              <h3 className="text-lg font-semibold text-[var(--foreground)]">Edit SIP</h3>
+              <p className="mt-1 truncate text-sm text-[var(--muted)]">{editingSip.asset.name}</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -444,7 +444,7 @@ export function SipManager({
                 </select>
               </div>
             </div>
-            {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
+            {error ? <p className="mt-4 text-sm text-[var(--negative)]">{error}</p> : null}
             <div className="mt-5 flex flex-wrap gap-2">
               <Button type="submit">Save SIP</Button>
               <Button type="button" variant="secondary" onClick={() => setEditingSip(null)}>

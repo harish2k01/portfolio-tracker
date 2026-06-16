@@ -212,8 +212,8 @@ export function AuthForm({ mode, usersExist, signupEnabled }: AuthFormProps) {
                 {loading ? "Please wait" : "Create account"}
               </Button>
             </form>
-            <div className="mt-5 text-center text-sm text-slate-400">
-              <Link href="/login" className="text-[#0787e5] hover:text-[#006fc4]">
+            <div className="mt-5 text-center text-sm text-[var(--muted)]">
+              <Link href="/login" className="text-[var(--primary)] hover:text-[var(--primary-hover)]">
                 Back to sign in
               </Link>
             </div>
@@ -278,10 +278,10 @@ export function AuthForm({ mode, usersExist, signupEnabled }: AuthFormProps) {
                 {loading ? "Signing in" : "Sign in"}
               </Button>
               <div className="flex justify-between text-sm">
-                <button type="button" className="text-slate-400 hover:text-white" onClick={() => setStep("email")}>
+                <button type="button" className="text-[var(--muted)] hover:text-[var(--foreground)]" onClick={() => setStep("email")}>
                   Change email
                 </button>
-                <button type="button" className="text-[#0787e5] hover:text-[#006fc4]" onClick={handleForgotPassword}>
+                <button type="button" className="text-[var(--primary)] hover:text-[var(--primary-hover)]" onClick={handleForgotPassword}>
                   Forgot password
                 </button>
               </div>
@@ -317,19 +317,19 @@ export function AuthForm({ mode, usersExist, signupEnabled }: AuthFormProps) {
                 {loading ? "Saving" : "Set password and sign in"}
               </Button>
               <div className="flex justify-between text-sm">
-                <button type="button" className="text-slate-400 hover:text-white" onClick={() => setStep("email")}>
+                <button type="button" className="text-[var(--muted)] hover:text-[var(--foreground)]" onClick={() => setStep("email")}>
                   Change email
                 </button>
-                <button type="button" className="text-[#0787e5] hover:text-[#006fc4]" onClick={handleForgotPassword}>
+                <button type="button" className="text-[var(--primary)] hover:text-[var(--primary-hover)]" onClick={handleForgotPassword}>
                   Send new temporary password
                 </button>
               </div>
             </form>
           ) : null}
 
-          <div className="mt-5 text-center text-sm text-slate-400">
+          <div className="mt-5 text-center text-sm text-[var(--muted)]">
             {signupEnabled || !usersExist ? (
-              <Link href="/signup" className="text-[#0787e5] hover:text-[#006fc4]">
+              <Link href="/signup" className="text-[var(--primary)] hover:text-[var(--primary-hover)]">
                 Create an account
               </Link>
             ) : (
@@ -344,7 +344,7 @@ export function AuthForm({ mode, usersExist, signupEnabled }: AuthFormProps) {
 
 function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <main className="theme-light flex min-h-screen items-center justify-center bg-[#fbfcfd] px-4">
+    <main className="theme-light flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
       {children}
     </main>
   );
@@ -361,7 +361,7 @@ function BrandMark() {
 function FormMessage({ error, message }: { error: string; message: string }) {
   if (error) {
     return (
-      <div className="rounded-md border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+      <div className="rounded-lg border border-[var(--negative)]/30 bg-[var(--negative-soft)] p-3 text-sm text-[var(--negative)]">
         {error}
       </div>
     );
@@ -369,7 +369,7 @@ function FormMessage({ error, message }: { error: string; message: string }) {
 
   if (message) {
     return (
-      <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+      <div className="rounded-lg border border-[var(--positive)]/30 bg-[var(--positive-soft)] p-3 text-sm text-[var(--positive)]">
         {message}
       </div>
     );

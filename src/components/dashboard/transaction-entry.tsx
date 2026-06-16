@@ -241,12 +241,12 @@ export function TransactionEntry({
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? (
-            <div className="rounded-md border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+            <div className="rounded-lg border border-[var(--negative)]/30 bg-[var(--negative-soft)] p-3 text-sm text-[var(--negative)]">
               {error}
             </div>
           ) : null}
           {importSummary ? (
-            <div className="grid gap-3 rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-50 sm:grid-cols-5">
+            <div className="grid gap-3 rounded-lg border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm font-medium text-[var(--foreground)] sm:grid-cols-5">
               <span>Parsed {importSummary.parsed}</span>
               <span>Added {importSummary.imported}</span>
               <span>Skipped {importSummary.skipped}</span>
@@ -255,8 +255,8 @@ export function TransactionEntry({
             </div>
           ) : null}
           {transactions.length ? (
-            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/[0.12]">
-              <div className="hidden grid-cols-[0.7fr_minmax(0,1.5fr)_0.65fr_0.65fr_0.7fr_0.8fr_0.8fr_0.8fr_5rem] border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 xl:grid">
+            <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
+              <div className="hidden grid-cols-[0.7fr_minmax(0,1.5fr)_0.65fr_0.65fr_0.7fr_0.8fr_0.8fr_0.8fr_5rem] border-b border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)] xl:grid">
                 <span>Date</span>
                 <span>Investment</span>
                 <span>Type</span>
@@ -281,29 +281,29 @@ export function TransactionEntry({
                     key={transaction.id}
                     role="button"
                     tabIndex={0}
-                    className="grid cursor-pointer gap-3 border-b border-white/10 px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-white/[0.06] xl:grid-cols-[0.7fr_minmax(0,1.5fr)_0.65fr_0.65fr_0.7fr_0.8fr_0.8fr_0.8fr_5rem] xl:items-center"
+                    className="grid cursor-pointer gap-3 border-b border-[var(--line)] px-4 py-3 text-left transition duration-200 last:border-b-0 hover:bg-[var(--row-hover)] xl:grid-cols-[0.7fr_minmax(0,1.5fr)_0.65fr_0.65fr_0.7fr_0.8fr_0.8fr_0.8fr_5rem] xl:items-center"
                     onClick={() => onOpenAsset(transaction.asset.id)}
                     onKeyDown={(event) => openTransactionFromKeyboard(event, transaction.asset.id)}
                   >
-                  <p className="text-sm font-semibold text-white">{transaction.tradeDate}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{transaction.tradeDate}</p>
                   <div className="min-w-0">
-                    <h4 className="truncate text-sm font-semibold text-white">{transaction.asset.name}</h4>
-                    <p className="mt-1 text-xs text-slate-500">{assetTypeLabel(transaction.asset.type)}</p>
+                    <h4 className="truncate text-sm font-semibold text-[var(--foreground)]">{transaction.asset.name}</h4>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{assetTypeLabel(transaction.asset.type)}</p>
                   </div>
                   <div>
                     <Badge variant="muted">
                       {transactionTypeLabel(transaction.type, transaction.asset.type)}
                     </Badge>
                   </div>
-                  <p className="text-sm font-semibold text-white xl:text-right">{transaction.quantity.toFixed(3)}</p>
-                  <p className="text-sm font-semibold text-white xl:text-right">{formatNav(transaction.navOrPrice)}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)] xl:text-right">{transaction.quantity.toFixed(3)}</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)] xl:text-right">{formatNav(transaction.navOrPrice)}</p>
                   <div className="xl:text-right">
-                    <p className="text-sm font-semibold text-white">{formatCurrency(transaction.amount)}</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{formatCurrency(transaction.amount)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-white xl:text-right">
+                  <p className="text-sm font-semibold text-[var(--foreground)] xl:text-right">
                     {currentAmount === null ? "-" : formatCurrency(currentAmount)}
                   </p>
-                  <p className={`text-sm font-semibold xl:text-right ${profitLoss === null ? "text-slate-500" : profitLoss >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  <p className={`text-sm font-semibold xl:text-right ${profitLoss === null ? "text-[var(--muted)]" : profitLoss >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
                     {profitLoss === null ? "-" : `${profitLoss >= 0 ? "+" : ""}${formatCurrency(profitLoss)}`}
                   </p>
                   <div className="flex items-center gap-2 xl:justify-end">
@@ -320,7 +320,7 @@ export function TransactionEntry({
                     >
                       <Trash2 className="h-4 w-4" aria-hidden />
                     </Button>
-                    <span className="hidden items-center gap-1 text-slate-500 xl:flex">
+                    <span className="hidden items-center gap-1 text-[var(--muted)] xl:flex">
                       <WalletCards className="h-5 w-5" aria-hidden />
                       <ArrowUpRight className="h-4 w-4" aria-hidden />
                     </span>
@@ -335,8 +335,8 @@ export function TransactionEntry({
               />
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
-              <FileSpreadsheet className="mx-auto mb-3 h-7 w-7 text-slate-500" aria-hidden />
+            <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center text-sm text-[var(--muted)]">
+              <FileSpreadsheet className="mx-auto mb-3 h-7 w-7 text-[var(--muted)]" aria-hidden />
               Import an Excel tradebook or add investments from Search.
             </div>
           )}
@@ -369,10 +369,10 @@ export function TransactionEntry({
       >
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--muted)]">
               All available buy transactions for each selected fund will be marked as SIP.
             </p>
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-white">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-[var(--foreground)]">
               <input
                 type="checkbox"
                 checked={selectedSipAssetIds.length === sipSuggestions.length}
@@ -381,9 +381,9 @@ export function TransactionEntry({
               Select all
             </label>
           </div>
-          <div className="overflow-x-auto rounded-md border border-white/10">
+          <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
             <div className="min-w-[1040px]">
-              <div className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 bg-white/[0.05] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              <div className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 bg-[var(--panel)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
                 <span />
                 <span>Fund</span>
                 <span>Action</span>
@@ -395,7 +395,7 @@ export function TransactionEntry({
               {suggestionPagination.items.map((suggestion) => (
                 <div
                   key={suggestion.assetId}
-                  className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 border-t border-white/10 px-3 py-3 hover:bg-white/[0.04]"
+                  className="grid grid-cols-[2.5rem_minmax(320px,2fr)_6rem_8rem_9rem_10rem_6rem] items-center gap-3 border-t border-[var(--line)] px-3 py-3 hover:bg-[var(--row-hover)]"
                 >
                   <input
                     type="checkbox"
@@ -404,8 +404,8 @@ export function TransactionEntry({
                     onChange={() => toggleSipSuggestion(suggestion.assetId)}
                   />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-white">{suggestion.assetName}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="truncate font-semibold text-[var(--foreground)]">{suggestion.assetName}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
                       {suggestion.referenceTransactions.length} transactions in latest month
                     </p>
                   </div>
@@ -419,8 +419,8 @@ export function TransactionEntry({
                         ? "Update"
                         : "Link"}
                   </Badge>
-                  <span className="whitespace-nowrap text-slate-300">{suggestion.referenceMonth}</span>
-                  <span className="whitespace-nowrap text-right text-slate-300">
+                  <span className="whitespace-nowrap text-[var(--muted)]">{suggestion.referenceMonth}</span>
+                  <span className="whitespace-nowrap text-right text-[var(--muted)]">
                     {formatCurrency(suggestion.importedAmount, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -437,7 +437,7 @@ export function TransactionEntry({
                       updateSipSuggestionAmount(suggestion.assetId, Number(event.target.value))
                     }
                   />
-                  <span className="text-right font-semibold text-white">
+                  <span className="text-right font-semibold text-[var(--foreground)]">
                     {suggestion.totalAvailableTransactions}
                   </span>
                 </div>

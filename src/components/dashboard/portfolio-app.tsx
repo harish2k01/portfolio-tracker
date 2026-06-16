@@ -167,7 +167,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
       data-theme={theme}
       className={cn(
         "min-h-screen transition-colors duration-300",
-        theme === "light" ? "theme-light bg-[#fbfcfd]" : "theme-dark bg-[#111827]",
+        theme === "light" ? "theme-light bg-[var(--background)]" : "theme-dark bg-[var(--background)]",
       )}
     >
       <div
@@ -324,7 +324,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
           {isLoading ? <LoadingOverlay /> : null}
 
           {error ? (
-            <div className="mb-5 rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+            <div className="mb-5 rounded-lg border border-[var(--negative)]/30 bg-[var(--negative-soft)] p-4 text-sm text-[var(--negative)]">
               {error}
             </div>
           ) : null}

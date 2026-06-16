@@ -23,30 +23,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MetricCard } from "@/components/dashboard/metric-card";
 
 const allocationPalettes = {
-  "Asset split": ["#0787e5", "#00a866", "#f3a325"],
-  "Market cap split": ["#6246ea", "#0787e5", "#00a866"],
+  "Asset split": ["#1277d3", "#536dfe", "#f0a62a"],
+  "Market cap split": ["#5b4bda", "#1277d3", "#20a4c8"],
   "Sector allocation": [
-    "#0787e5",
-    "#00a866",
-    "#f3a325",
-    "#8b5cf6",
-    "#e72b4d",
-    "#00a7b5",
-    "#f97316",
-    "#84cc16",
-    "#ec4899",
+    "#1277d3",
+    "#f0a62a",
+    "#5b4bda",
+    "#20a4c8",
+    "#8b6f47",
+    "#7c8fa6",
+    "#d97706",
+    "#64748b",
+    "#a855f7",
     "#64748b",
   ],
 } as const;
 const assetClassOrder = ["Equity", "Debt", "Commodities"] as const;
 const portfolioRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
-const stockConcentrationColors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d"];
+const stockConcentrationColors = ["#1277d3", "#536dfe", "#f0a62a", "#20a4c8", "#7c8fa6"];
 
 const tooltipStyle = {
-  background: "#111827",
-  border: "1px solid rgba(148,163,184,0.24)",
+  background: "var(--panel)",
+  border: "1px solid var(--line)",
   borderRadius: "8px",
-  color: "#f8fafc",
+  color: "var(--foreground)",
 };
 
 type AssetClassName = (typeof assetClassOrder)[number];
@@ -61,8 +61,8 @@ function useMounted() {
 
 function EmptyState({ title, action }: { title: string; action?: () => void }) {
   return (
-    <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.035] p-8 text-center">
-      <p className="text-sm text-slate-300">{title}</p>
+    <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--panel-soft)] p-8 text-center">
+      <p className="text-sm text-[var(--muted)]">{title}</p>
       {action ? (
         <Button type="button" className="mt-4" onClick={action}>
           Add first entry
@@ -119,7 +119,7 @@ function PortfolioAnalysis({
 
   return (
     <Card className="glass-panel overflow-hidden animate-in">
-      <CardHeader className="border-b border-white/10 pb-5">
+      <CardHeader className="border-b border-[var(--line)] pb-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <CardTitle className="text-3xl">Portfolio</CardTitle>
@@ -127,20 +127,20 @@ function PortfolioAnalysis({
           </div>
           <div className="grid grid-cols-2 gap-6 text-left sm:text-right">
             <div>
-              <p className="flex items-center gap-2 text-sm text-slate-300 sm:justify-end">
-                Current <span className="h-3 w-3 rounded-sm bg-[#0787e5]" />
+              <p className="flex items-center gap-2 text-sm text-[var(--muted)] sm:justify-end">
+                Current <span className="h-3 w-3 rounded-sm bg-[var(--primary)]" />
               </p>
-              <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(summary.totalValue)}</p>
-              <p className={summary.gains >= 0 ? "mt-2 text-sm font-semibold text-emerald-300" : "mt-2 text-sm font-semibold text-rose-300"}>
+              <p className="mt-3 text-3xl font-semibold text-[var(--foreground)]">{formatCurrency(summary.totalValue)}</p>
+              <p className={summary.gains >= 0 ? "mt-2 text-sm font-semibold text-[var(--positive)]" : "mt-2 text-sm font-semibold text-[var(--negative)]"}>
                 {summary.gains >= 0 ? "+" : ""}
                 {formatCurrency(summary.gains)} ({summary.gainsPercent.toFixed(2)}%)
               </p>
             </div>
             <div>
-              <p className="flex items-center gap-2 text-sm text-slate-300 sm:justify-end">
+              <p className="flex items-center gap-2 text-sm text-[var(--muted)] sm:justify-end">
                 Invested <span className="h-3 w-3 rounded-sm bg-[#98a2b3]" />
               </p>
-              <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(summary.investedAmount)}</p>
+              <p className="mt-3 text-3xl font-semibold text-[var(--foreground)]">{formatCurrency(summary.investedAmount)}</p>
             </div>
           </div>
         </div>
@@ -152,8 +152,8 @@ function PortfolioAnalysis({
               <ComposedChart data={chartData} margin={{ left: 0, right: 24, top: 16, bottom: 10 }}>
                 <defs>
                   <linearGradient id="portfolioCurrentFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0787e5" stopOpacity={0.14} />
-                    <stop offset="95%" stopColor="#0787e5" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.14} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(148,163,184,0.16)" vertical={false} />
@@ -179,7 +179,7 @@ function PortfolioAnalysis({
                 <Area
                   type="monotone"
                   dataKey="current"
-                  stroke="#0787e5"
+                  stroke="var(--primary)"
                   strokeWidth={3}
                   fill="url(#portfolioCurrentFill)"
                   activeDot={{ r: 5, strokeWidth: 2 }}
@@ -235,7 +235,7 @@ function AllocationCard({
 
   return (
     <Card className="glass-panel overflow-hidden animate-in">
-      <CardHeader className="border-b border-white/10 pb-5">
+      <CardHeader className="border-b border-[var(--line)] pb-5">
         <CardTitle className="text-2xl">{title}</CardTitle>
         <CardDescription>{shownData.length ? `${shownData.length} groups` : emptyText}</CardDescription>
       </CardHeader>
@@ -270,12 +270,12 @@ function AllocationCard({
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <p className="text-sm font-semibold text-white">{shownData.length} groups</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">{shownData.length} groups</p>
               </div>
             </div>
 
             <div className={cn("space-y-3", shownData.length > 5 && "max-h-[268px] overflow-y-auto pr-2")}>
-              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <span>{label}</span>
                 <span>Allocation</span>
               </div>
@@ -286,10 +286,10 @@ function AllocationCard({
                   className={cn(
                     "grid min-h-[44px] w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition",
                     activeName === point.name
-                      ? "bg-white/[0.06]"
+                      ? "bg-[var(--panel-soft)]"
                       : activeName
                         ? "opacity-35"
-                        : "hover:bg-white/[0.045]",
+                        : "hover:bg-[var(--row-hover)]",
                   )}
                   onClick={() => onSelect(point.name)}
                   onMouseEnter={() => setActiveName(point.name)}
@@ -300,9 +300,9 @@ function AllocationCard({
                       className="h-3 w-3 shrink-0 rounded-full"
                       style={{ backgroundColor: colors[index % colors.length] }}
                     />
-                    <span className="truncate text-sm font-semibold text-white">{point.name}</span>
+                    <span className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</span>
                   </span>
-                  <span className="text-sm font-semibold text-white">{point.value}%</span>
+                  <span className="text-sm font-semibold text-[var(--foreground)]">{point.value}%</span>
                 </button>
               ))}
             </div>
@@ -327,7 +327,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
   return (
     <>
       <Card className="glass-panel overflow-hidden animate-in">
-        <CardHeader className="border-b border-white/10 pb-5">
+        <CardHeader className="border-b border-[var(--line)] pb-5">
           <CardTitle className="text-2xl">Stocks concentration</CardTitle>
           <CardDescription>
             {knownStocks.length
@@ -353,9 +353,9 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                     >
                       {point.name.slice(0, 1).toUpperCase()}
                     </span>
-                    <span className="truncate text-sm font-semibold text-white">{point.name}</span>
+                    <span className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</span>
                   </div>
-                  <div className="relative h-9 overflow-hidden rounded-md bg-white/[0.08]">
+                  <div className="relative h-9 overflow-hidden rounded-md bg-[var(--panel-soft)]">
                     <span
                       className="absolute inset-y-0 left-0 rounded-md"
                       style={{
@@ -363,7 +363,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                         backgroundColor: "rgba(7, 135, 229, 0.22)",
                       }}
                     />
-                    <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-white">
+                    <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-[var(--foreground)]">
                       {point.value.toFixed(2)}%
                     </span>
                   </div>
@@ -372,16 +372,16 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
               {otherStocks.length ? (
                 <button
                   type="button"
-                  className="grid w-full gap-3 rounded-md pt-2 text-left transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
+                  className="grid w-full gap-3 rounded-md pt-2 text-left transition hover:bg-[var(--row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
                   onClick={() => setShowOtherStocks(true)}
                 >
-                  <span className="px-2 text-sm font-semibold text-slate-400">Other stocks</span>
-                  <span className="relative h-8 overflow-hidden rounded-md bg-white/[0.05]">
+                  <span className="px-2 text-sm font-semibold text-[var(--muted)]">Other stocks</span>
+                  <span className="relative h-8 overflow-hidden rounded-md bg-[var(--panel-soft)]">
                     <span
-                      className="absolute inset-y-0 left-0 rounded-md bg-white/[0.08]"
+                      className="absolute inset-y-0 left-0 rounded-md bg-slate-400/15"
                       style={{ width: `${Math.max((otherValue / maxValue) * 100, 8)}%` }}
                     />
-                    <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-slate-300">
+                    <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-[var(--foreground)]">
                       {otherValue.toFixed(2)}%
                     </span>
                   </span>
@@ -395,7 +395,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
       </Card>
 
       {showOtherStocks ? (
-        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
           <button
             type="button"
             className="absolute inset-0 cursor-default"
@@ -405,8 +405,8 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
           <div className="modal-panel absolute left-1/2 top-1/2 flex max-h-[82vh] w-[min(92vw,860px)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border border-[var(--line)] bg-[var(--panel)] shadow-xl">
             <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-5">
               <div>
-                <h3 className="text-xl font-semibold text-white">Other stocks concentration</h3>
-                <p className="mt-1 text-sm text-slate-400">
+                <h3 className="text-xl font-semibold text-[var(--foreground)]">Other stocks concentration</h3>
+                <p className="mt-1 text-sm text-[var(--muted)]">
                   {otherStocks.length} stocks making up {otherValue.toFixed(2)}% of stock exposure
                 </p>
               </div>
@@ -438,13 +438,13 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                         {point.name.slice(0, 1).toUpperCase()}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{point.name}</p>
+                        <p className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</p>
                         {point.amount ? (
-                          <p className="mt-1 text-xs text-slate-500">{formatCurrency(point.amount)} exposure</p>
+                          <p className="mt-1 text-xs text-[var(--muted)]">{formatCurrency(point.amount)} exposure</p>
                         ) : null}
                       </div>
                     </div>
-                    <div className="relative h-8 overflow-hidden rounded-md bg-white/[0.08]">
+                    <div className="relative h-8 overflow-hidden rounded-md bg-[var(--panel)]">
                       <span
                         className="absolute inset-y-0 left-0 rounded-md"
                         style={{
@@ -452,7 +452,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                           backgroundColor: "rgba(7, 135, 229, 0.22)",
                         }}
                       />
-                      <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-white">
+                      <span className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-[var(--foreground)]">
                         {point.value.toFixed(2)}%
                       </span>
                     </div>
