@@ -65,10 +65,12 @@ export function AssetDetailPanel({
   target,
   onClose,
   onChanged,
+  mode = "modal",
 }: {
   target: DetailTarget | null;
   onClose: () => void;
   onChanged: () => Promise<void>;
+  mode?: "modal" | "page";
 }) {
   const [range, setRange] = useState<ChartRange>("1Y");
   const [payload, setPayload] = useState<DetailPayload | null>(null);
@@ -210,9 +212,26 @@ export function AssetDetailPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
-      <button className="absolute inset-0 cursor-default" type="button" aria-label="Close history" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[1120px] flex-col overflow-y-auto border-l border-white/10 bg-[#0b1120] shadow-2xl shadow-black animate-slide-in">
+    <div
+      className={cn(
+        mode === "modal"
+          ? "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-fade"
+          : "page-transition",
+      )}
+      role={mode === "modal" ? "dialog" : undefined}
+      aria-modal={mode === "modal" ? true : undefined}
+    >
+      {mode === "modal" ? (
+        <button className="absolute inset-0 cursor-default" type="button" aria-label="Close history" onClick={onClose} />
+      ) : null}
+      <aside
+        className={cn(
+          "flex w-full flex-col overflow-y-auto bg-[#0b1120]",
+          mode === "modal"
+            ? "absolute right-0 top-0 h-full max-w-[1120px] border-l border-white/10 shadow-2xl shadow-black animate-slide-in"
+            : "min-h-[calc(100vh-2rem)] rounded-lg border border-white/10",
+        )}
+      >
         <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0b1120]/92 px-5 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">

@@ -22,6 +22,7 @@ import {
 import { AdminSettings } from "@/components/dashboard/admin-settings";
 import { AssetDetailPanel } from "@/components/dashboard/asset-detail-panel";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
+import { FundOverviewPage, type FundOverviewTarget } from "@/components/dashboard/fund-overview-page";
 import { FundSearch } from "@/components/dashboard/fund-search";
 import { SipManager } from "@/components/dashboard/sip-manager";
 import { TransactionEntry } from "@/components/dashboard/transaction-entry";
@@ -54,6 +55,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
   const [theme, setTheme] = useState<Theme>("light");
   const [dashboard, setDashboard] = useState<PortfolioDashboard | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
+  const [fundTarget, setFundTarget] = useState<FundOverviewTarget | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -102,6 +104,8 @@ export function PortfolioApp({ user }: { user: AppUser }) {
 
   function switchSection(section: Section) {
     setActiveSection(section);
+    setDetailTarget(null);
+    setFundTarget(null);
     setMenuOpen(false);
   }
 
@@ -133,6 +137,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
       }
 
       setDetailTarget(null);
+      setFundTarget(null);
       setActiveSection("dashboard");
       setResetOpen(false);
       await refreshDashboard();
@@ -311,35 +316,52 @@ export function PortfolioApp({ user }: { user: AppUser }) {
           ) : null}
 
           <div key={activeSection} className="page-transition">
-            {activeSection === "dashboard" ? (
+            {detailTarget ? (
+              <AssetDetailPanel
+                mode="page"
+                target={detailTarget}
+                onClose={() => setDetailTarget(null)}
+                onChanged={refreshDashboard}
+              />
+            ) : fundTarget ? (
+              <FundOverviewPage
+                target={fundTarget}
+                onBack={() => setFundTarget(null)}
+                onOpenInvestment={(target) => setDetailTarget(target)}
+              />
+            ) : activeSection === "dashboard" ? (
               <DashboardOverview
                 dashboard={dashboard}
                 onOpenTransactions={() => switchSection("search")}
-                onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
+                onOpenAsset={(assetId) => setFundTarget({ kind: "asset", assetId })}
               />
             ) : null}
-            {activeSection === "sips" ? (
+            {!detailTarget && !fundTarget && activeSection === "sips" ? (
               <SipManager
                 sips={dashboard?.sips ?? []}
                 onChanged={refreshDashboard}
-                onOpenSip={(sipId) => setDetailTarget({ kind: "sip", id: sipId })}
+                onOpenSip={(sipId) => setFundTarget({ kind: "sip", sipId })}
               />
             ) : null}
-            {activeSection === "transactions" ? (
+            {!detailTarget && !fundTarget && activeSection === "transactions" ? (
               <TransactionEntry
                 dashboard={dashboard}
                 onChanged={refreshDashboard}
-                onOpenAsset={(assetId) => setDetailTarget({ kind: "asset", id: assetId })}
+                onOpenAsset={(assetId) => setFundTarget({ kind: "asset", assetId })}
               />
             ) : null}
-            {activeSection === "search" ? <FundSearch onChanged={refreshDashboard} /> : null}
-            {activeSection === "admin" && user.role === "ADMIN" ? (
+            {!detailTarget && !fundTarget && activeSection === "search" ? (
+              <FundSearch
+                onChanged={refreshDashboard}
+                onOpenFund={(asset) => setFundTarget({ kind: "search", asset })}
+              />
+            ) : null}
+            {!detailTarget && !fundTarget && activeSection === "admin" && user.role === "ADMIN" ? (
               <AdminSettings onResetPortfolio={() => setResetOpen(true)} isResetting={isResetting} />
             ) : null}
           </div>
         </div>
       </div>
-      <AssetDetailPanel target={detailTarget} onClose={() => setDetailTarget(null)} onChanged={refreshDashboard} />
       <ConfirmDialog
         open={resetOpen}
         title="Reset all portfolio data?"

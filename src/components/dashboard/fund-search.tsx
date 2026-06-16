@@ -63,7 +63,13 @@ const tooltipStyle = {
   color: "#f8fafc",
 };
 
-export function FundSearch({ onChanged }: { onChanged: () => Promise<void> }) {
+export function FundSearch({
+  onChanged,
+  onOpenFund,
+}: {
+  onChanged: () => Promise<void>;
+  onOpenFund: (asset: InvestmentSearchResult) => void;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<InvestmentSearchResult[]>([]);
   const [selected, setSelected] = useState<InvestmentSearchResult | null>(null);
@@ -226,14 +232,7 @@ export function FundSearch({ onChanged }: { onChanged: () => Promise<void> }) {
   }, [isSipMandate, selected, tradeDate]);
 
   function openPanel(asset: InvestmentSearchResult) {
-    setSelected(asset);
-    setRange(asset.type === "MUTUAL_FUND" ? "1Y" : "1M");
-    setActionMode(asset.type === "MUTUAL_FUND" ? "LUMPSUM" : "BUY");
-    setAmount(50000);
-    setTradeDate(new Date().toISOString().slice(0, 10));
-    setFrequency("MONTHLY");
-    setNavOrPrice(null);
-    setError("");
+    onOpenFund(asset);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

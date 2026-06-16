@@ -4,6 +4,7 @@ import { FormEvent, KeyboardEvent, useMemo, useState } from "react";
 import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { formatCurrency, monthlyEquivalent } from "@/lib/analytics";
+import { aggregateWeightedAllocation } from "@/lib/allocation-metadata";
 import type { SipFrequency, SipRow, SipStatus } from "@/types/portfolio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 const colors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"];
+const marketCapColors = ["#6548e8", "#0787e5", "#00a866", "#f3a325"];
 const selectClass =
   "h-10 w-full rounded-md border border-slate-300/15 bg-black/[0.22] px-3 text-sm text-white outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
 
@@ -43,6 +45,19 @@ export function SipManager({
         name: compactFundName(sip.asset.name),
         amount: monthlyEquivalent(sip.amount, sip.frequency),
       })),
+    [activeSips],
+  );
+  const marketCapData = useMemo(
+    () =>
+      aggregateWeightedAllocation(
+        activeSips.map((sip) => ({
+          amount: monthlyEquivalent(sip.amount, sip.frequency),
+          allocation: sip.asset.marketCapAllocation?.map((point) => ({
+            name: normalizeMarketCapName(point.name),
+            value: point.value,
+          })),
+        })),
+      ),
     [activeSips],
   );
   const totalMonthly = chartData.reduce((sum, item) => sum + item.amount, 0);
@@ -124,38 +139,8 @@ export function SipManager({
         </CardHeader>
         <CardContent>
           {activeSips.length ? (
-            <div className="grid gap-5 xl:grid-cols-[1fr_420px_1fr]">
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold text-white">SIP Breakdown</p>
-                <div className="mt-4 space-y-3">
-                  {chartData.map((item, index) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={cn(
-                        "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2 text-left transition",
-                        activeChartId === item.id
-                          ? "bg-white/[0.06]"
-                          : activeChartId
-                            ? "opacity-35"
-                            : "hover:bg-white/[0.045]",
-                      )}
-                      onClick={() => onOpenSip(item.id)}
-                      onMouseEnter={() => setActiveChartId(item.id)}
-                      onMouseLeave={() => setActiveChartId(null)}
-                    >
-                      <span
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: colors[index % colors.length] }}
-                      />
-                      <span className="min-w-0 truncate text-sm font-semibold text-white">{item.name}</span>
-                      <span className="text-sm font-semibold text-white">{formatCurrency(item.amount)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative h-[360px] overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-4">
+            <div className="grid gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(420px,1.1fr)]">
+              <div className="relative h-[390px] overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-5">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -190,29 +175,40 @@ export function SipManager({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold text-white">Allocation</p>
-                <div className="mt-4 space-y-4">
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Allocation</p>
+                    <p className="mt-1 text-xs text-slate-500">{chartData.length} active SIPs</p>
+                  </div>
+                  <p className="text-sm font-semibold text-white">{formatCurrency(totalMonthly)} / month</p>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                   {chartData.map((item, index) => {
                     const percentage = totalMonthly ? (item.amount / totalMonthly) * 100 : 0;
 
                     return (
-                      <div
+                      <button
                         key={item.id}
+                        type="button"
                         className={cn(
-                          "cursor-pointer space-y-2 rounded-md p-2 transition",
+                          "cursor-pointer space-y-2 rounded-md border border-transparent p-3 text-left transition hover:border-white/10 hover:bg-white/[0.045]",
                           activeChartId === item.id
-                            ? "bg-white/[0.06]"
+                            ? "border-white/10 bg-white/[0.06]"
                             : activeChartId
                               ? "opacity-35"
                               : "",
                         )}
+                        onClick={() => onOpenSip(item.id)}
                         onMouseEnter={() => setActiveChartId(item.id)}
                         onMouseLeave={() => setActiveChartId(null)}
                       >
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="truncate font-semibold text-white">{item.name}</span>
-                          <span className="font-semibold text-white">{percentage.toFixed(0)}%</span>
+                          <span className="min-w-0 truncate font-semibold text-white">{item.name}</span>
+                          <span className="shrink-0 font-semibold text-white">{percentage.toFixed(0)}%</span>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          <span>{formatCurrency(item.amount)} monthly</span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
                           <span
@@ -223,10 +219,63 @@ export function SipManager({
                             }}
                           />
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
+              </div>
+
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-5 xl:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Market cap split</p>
+                    <p className="mt-1 text-xs text-slate-500">Weighted by active SIP monthly amount</p>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    {marketCapData.length ? `${marketCapData.length} groups` : "Unavailable"}
+                  </p>
+                </div>
+                {marketCapData.length ? (
+                  <>
+                    <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-white/[0.08]">
+                      {marketCapData.map((item, index) => (
+                        <span
+                          key={item.name}
+                          className="h-full"
+                          style={{
+                            width: `${item.value}%`,
+                            backgroundColor: marketCapColors[index % marketCapColors.length],
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-5 grid gap-3 md:grid-cols-3">
+                      {marketCapData.map((item, index) => (
+                        <div key={item.name} className="rounded-md border border-white/10 bg-black/[0.1] p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span
+                                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: marketCapColors[index % marketCapColors.length] }}
+                              />
+                              <span className="truncate text-sm font-semibold text-white">{item.name}</span>
+                            </div>
+                            <span className="shrink-0 text-sm font-semibold text-white">
+                              {item.value.toFixed(2)}%
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-slate-500">
+                            {formatCurrency(item.amount ?? 0)} monthly exposure
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-5 rounded-lg border border-dashed border-white/15 p-5 text-sm text-slate-400">
+                    Market-cap metadata is unavailable for the active SIP funds.
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -422,6 +471,24 @@ function compactFundName(name: string) {
     .replace(/\s*-\s*Growth Option.*/i, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeMarketCapName(name: string) {
+  const cleaned = name.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+
+  if (/\blarge\b/i.test(cleaned)) {
+    return "Large Cap";
+  }
+
+  if (/\bmid\b/i.test(cleaned)) {
+    return "Mid Cap";
+  }
+
+  if (/\bsmall\b|\bmicro\b/i.test(cleaned)) {
+    return "Small Cap";
+  }
+
+  return cleaned.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function formatFrequency(frequency: SipFrequency) {
