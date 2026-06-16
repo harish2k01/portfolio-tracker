@@ -60,14 +60,19 @@ async function safeFetchDetails(asset: Asset, range: ChartRange) {
 
     return {
       ...details,
+      assetAllocation: details.assetAllocation,
       sectorAllocation:
         details.sectorAllocation ??
         parseStoredAllocation(asset.sectorAllocation) ??
-        inferSectorAllocation(asset.name, details.category ?? asset.category),
+        (asset.type === "MUTUAL_FUND"
+          ? undefined
+          : inferSectorAllocation(asset.name, details.category ?? asset.category)),
       marketCapAllocation:
         details.marketCapAllocation ??
         parseStoredAllocation(asset.marketCapAllocation) ??
-        inferMarketCapAllocation(asset.name, details.category ?? asset.category),
+        (asset.type === "MUTUAL_FUND"
+          ? undefined
+          : inferMarketCapAllocation(asset.name, details.category ?? asset.category)),
     };
   } catch {
     return {
@@ -83,10 +88,10 @@ async function safeFetchDetails(asset: Asset, range: ChartRange) {
       history: [],
       sectorAllocation:
         parseStoredAllocation(asset.sectorAllocation) ??
-        inferSectorAllocation(asset.name, asset.category),
+        (asset.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(asset.name, asset.category)),
       marketCapAllocation:
         parseStoredAllocation(asset.marketCapAllocation) ??
-        inferMarketCapAllocation(asset.name, asset.category),
+        (asset.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(asset.name, asset.category)),
     };
   }
 }

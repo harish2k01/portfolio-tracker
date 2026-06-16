@@ -2,6 +2,7 @@ import type { AssetType, SipFrequency, TransactionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assetIdentity, resolveAssetSchemeCode } from "@/lib/assets";
 import {
+  aggregateWeightedAllocation,
   inferMarketCapAllocation,
   inferSectorAllocation,
   parseStoredAllocation,
@@ -32,6 +33,7 @@ export type HoldingRow = {
   currentValue: number;
   gain: number;
   gainPercent: number;
+  assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
 };
@@ -163,7 +165,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
             symbol: row.symbol,
             isin: row.isin,
           }),
-          8000,
+          25000,
         );
         const currentPrice = quote.value ?? row.currentPrice;
         const currentValue = currentPrice ? row.quantity * currentPrice : 0;
@@ -171,14 +173,17 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         const gain = currentValue - netInvested;
         const category = quote.category ?? row.category;
         const assetClass = classifyAssetClass(row.type, row.name, category);
+        const assetAllocation =
+          quote.assetAllocation ??
+          (row.type === "MUTUAL_FUND" ? undefined : [{ name: assetClass, value: 100 }]);
         const sectorAllocation =
           quote.sectorAllocation ??
           row.sectorAllocation ??
-          inferSectorAllocation(row.name, category);
+          (row.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(row.name, category));
         const marketCapAllocation =
           quote.marketCapAllocation ??
           row.marketCapAllocation ??
-          inferMarketCapAllocation(row.name, category);
+          (row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, category));
 
         if (
           (quote.sectorAllocation?.length && !row.sectorAllocation?.length) ||
@@ -202,6 +207,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           gain,
           gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
           schemeCode,
+          assetAllocation,
           sectorAllocation,
           marketCapAllocation,
         };
@@ -217,9 +223,12 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           currentValue,
           gain,
           gainPercent: netInvested ? (gain / netInvested) * 100 : 0,
-          sectorAllocation: row.sectorAllocation ?? inferSectorAllocation(row.name, row.category),
+          sectorAllocation:
+            row.sectorAllocation ??
+            (row.type === "MUTUAL_FUND" ? undefined : inferSectorAllocation(row.name, row.category)),
           marketCapAllocation:
-            row.marketCapAllocation ?? inferMarketCapAllocation(row.name, row.category),
+            row.marketCapAllocation ??
+            (row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, row.category)),
         };
       }
     }),
@@ -567,18 +576,14 @@ export function serializeAsset(asset: {
 }
 
 function allocationFromHoldings(rows: HoldingRow[]) {
-  const total = rows.reduce((sum, row) => sum + allocationBasis(row), 0);
-  const groups = new Map<string, number>();
-
-  for (const row of rows) {
-    groups.set(row.assetClass, (groups.get(row.assetClass) ?? 0) + allocationBasis(row));
-  }
-
-  return [...groups.entries()].map(([name, value]) => ({
-    name,
-    value: total ? Number(((value / total) * 100).toFixed(2)) : 0,
-    amount: value,
-    }));
+  return aggregateWeightedAllocation(
+    rows.map((row) => ({
+      amount: allocationBasis(row),
+      allocation: row.assetAllocation?.length
+        ? row.assetAllocation
+        : [{ name: row.assetClass, value: 100 }],
+    })),
+  );
 }
 
 function allocationBasis(row: Pick<HoldingRow, "currentValue" | "investedAmount">) {
@@ -679,57 +684,15 @@ function weightedProviderAllocation(
   rows: HoldingRow[],
   key: "sectorAllocation" | "marketCapAllocation",
 ) {
-  const groups = new Map<string, number>();
-  let allocatedValue = 0;
-
-  for (const row of rows) {
-    if (row.assetClass !== "Equity") {
-      continue;
-    }
-
-    const allocation = row[key];
-    const amount = allocationBasis(row);
-
-    if (!allocation?.length || amount <= 0) {
-      continue;
-    }
-
-    const normalizedAllocation = allocation
-      .map((point) => ({
+  return aggregateWeightedAllocation(
+    rows.map((row) => ({
+      amount: allocationBasis(row),
+      allocation: row[key]?.map((point) => ({
         name: normalizeAllocationName(point.name, key),
-        value: Number(point.value),
-      }))
-      .filter(
-        (point) =>
-          point.name &&
-          point.name.toLowerCase() !== "unclassified" &&
-          Number.isFinite(point.value) &&
-          point.value > 0,
-      );
-    const allocationTotal = normalizedAllocation.reduce((sum, point) => sum + point.value, 0);
-
-    if (!allocationTotal) {
-      continue;
-    }
-
-    allocatedValue += amount;
-
-    for (const point of normalizedAllocation) {
-      groups.set(
-        point.name,
-        (groups.get(point.name) ?? 0) + amount * (point.value / allocationTotal),
-      );
-    }
-  }
-
-  return [...groups.entries()]
-    .map(([name, amount]) => ({
-      name,
-      amount,
-      value: allocatedValue ? Number(((amount / allocatedValue) * 100).toFixed(2)) : 0,
-    }))
-    .filter((point) => point.value > 0)
-    .sort((a, b) => b.value - a.value);
+        value: point.value,
+      })),
+    })),
+  );
 }
 
 function normalizeAllocationName(

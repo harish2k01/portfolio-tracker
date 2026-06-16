@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 const colors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"];
 const selectClass =
@@ -45,6 +46,7 @@ export function SipManager({
     [activeSips],
   );
   const totalMonthly = chartData.reduce((sum, item) => sum + item.amount, 0);
+  const sipPagination = usePagination(sips);
 
   async function updateSip(id: string, nextStatus: SipStatus) {
     await fetch("/api/sips", {
@@ -250,7 +252,7 @@ export function SipManager({
                 <span>Status</span>
                 <span className="text-right">Actions</span>
               </div>
-              {sips.map((sip) => (
+              {sipPagination.items.map((sip) => (
                 <div
                   key={sip.id}
                   role="button"
@@ -319,6 +321,11 @@ export function SipManager({
                   </div>
                 </div>
               ))}
+              <TablePagination
+                {...sipPagination}
+                onPageChange={sipPagination.setPage}
+                onPageSizeChange={sipPagination.setPageSize}
+              />
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">

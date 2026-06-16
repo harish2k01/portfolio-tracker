@@ -1,5 +1,6 @@
 import type { AssetType } from "@prisma/client";
 import { fetchAmfiMarketCapClassification } from "@/lib/amfi-classification";
+import { fetchGrowwFundPortfolio } from "@/lib/groww-fund-data";
 
 export type ChartRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL";
 
@@ -35,6 +36,7 @@ export type InvestmentQuote = {
   changePercent: number | null;
   history: PricePoint[];
   holdings?: Array<{ name: string; weight: number }>;
+  assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
 };
@@ -372,22 +374,29 @@ export async function fetchMutualFundDetails(
       .filter((point) => point.dateValue >= startDate.getTime() && point.dateValue <= endDate.getTime())
       .sort((a, b) => a.dateValue - b.dateValue)
       .map(({ date, value }) => ({ date, value })) ?? [];
-  const enriched = await enrichedPromise;
+  const schemeName = payload.meta?.scheme_name ?? `Scheme ${schemeCode}`;
+  const growwPromise = withFallbackTimeout(
+    fetchGrowwFundPortfolio(schemeCode, schemeName),
+    15000,
+    null,
+  );
+  const [enriched, groww] = await Promise.all([enrichedPromise, growwPromise]);
   const latest = points.at(-1)?.value ?? enriched?.value ?? null;
   const first = points.at(0)?.value ?? latest;
 
   return {
-    name: payload.meta?.scheme_name ?? enriched?.name ?? `Scheme ${schemeCode}`,
+    name: payload.meta?.scheme_name ?? groww?.name ?? enriched?.name ?? `Scheme ${schemeCode}`,
     type: "MUTUAL_FUND",
     schemeCode,
-    amc: payload.meta?.fund_house ?? enriched?.amc,
-    category: payload.meta?.scheme_category ?? enriched?.category,
+    amc: payload.meta?.fund_house ?? groww?.amc ?? enriched?.amc,
+    category: payload.meta?.scheme_category ?? groww?.category ?? enriched?.category,
     value: latest,
     changePercent: latest && first ? ((latest - first) / first) * 100 : null,
     history: points,
-    holdings: enriched?.holdings,
-    sectorAllocation: enriched?.sectorAllocation,
-    marketCapAllocation: enriched?.marketCapAllocation,
+    holdings: groww?.holdings ?? enriched?.holdings,
+    assetAllocation: groww?.assetAllocation,
+    sectorAllocation: groww?.sectorAllocation ?? enriched?.sectorAllocation,
+    marketCapAllocation: groww?.marketCapAllocation ?? enriched?.marketCapAllocation,
   };
 }
 

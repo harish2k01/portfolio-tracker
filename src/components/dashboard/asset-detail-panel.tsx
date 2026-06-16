@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
 import { assetTypeLabel, transactionTypeLabel } from "@/lib/labels";
 import type { ChartRange, SerializedAsset, SipRow, TransactionRow } from "@/types/portfolio";
@@ -85,6 +86,7 @@ export function AssetDetailPanel({
         ? payload.sip.asset
         : null;
   const transactions = useMemo(() => payload?.transactions ?? [], [payload?.transactions]);
+  const transactionPagination = usePagination(transactions);
   const summary = useMemo(() => summarizeTransactions(transactions, payload?.details.value ?? null), [
     payload?.details.value,
     transactions,
@@ -403,58 +405,67 @@ export function AssetDetailPanel({
                     <p className="text-sm text-slate-400">{transactions.length} entries</p>
                   </div>
                 </div>
-                <div className="overflow-x-auto rounded-lg border border-white/10">
-                  <div className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    <span>Date</span>
-                    <span>Type</span>
-                    <span className="text-right">Units</span>
-                    <span className="text-right">NAV/Price</span>
-                    <span className="text-right">Invested amount</span>
-                    <span className="text-right">Current amount</span>
-                    <span className="text-right">Profit / loss</span>
+                <div className="overflow-hidden rounded-lg border border-white/10">
+                  <div className="overflow-x-auto">
+                    <div className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      <span>Date</span>
+                      <span>Type</span>
+                      <span className="text-right">Units</span>
+                      <span className="text-right">NAV/Price</span>
+                      <span className="text-right">Invested amount</span>
+                      <span className="text-right">Current amount</span>
+                      <span className="text-right">Profit / loss</span>
+                    </div>
+                    {transactions.length ? (
+                      transactionPagination.items.map((transaction) => {
+                        const isSell = transaction.type === "SELL";
+                        const currentAmount = isSell
+                          ? null
+                          : transaction.quantity * (summary.latestPrice ?? transaction.navOrPrice);
+                        const profitLoss = currentAmount === null ? null : currentAmount - transaction.amount;
+
+                        return (
+                          <div
+                            key={transaction.id}
+                            className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] items-center border-b border-white/10 px-4 py-4 text-sm last:border-b-0"
+                          >
+                            <span className="text-white">{transaction.tradeDate}</span>
+                            <span className="flex items-center gap-2 text-slate-300">
+                              {isSell ? (
+                                <ArrowDownLeft className="h-4 w-4 text-rose-300" aria-hidden />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4 text-emerald-300" aria-hidden />
+                              )}
+                              {transactionTypeLabel(transaction.type, transaction.asset.type)}
+                            </span>
+                            <span className="text-right font-medium text-white">{transaction.quantity.toFixed(3)}</span>
+                            <span className="text-right text-slate-300">{formatNav(transaction.navOrPrice)}</span>
+                            <span className={isSell ? "text-right font-semibold text-rose-200" : "text-right font-semibold text-emerald-200"}>
+                              {isSell ? "-" : "+"}
+                              {formatCurrency(transaction.amount)}
+                            </span>
+                            <span className="text-right font-semibold text-white">
+                              {currentAmount === null ? "-" : formatCurrency(currentAmount)}
+                            </span>
+                            <span className={`text-right font-semibold ${profitLoss === null ? "text-slate-500" : profitLoss >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                              {profitLoss === null ? "-" : `${profitLoss >= 0 ? "+" : ""}${formatCurrency(profitLoss)}`}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-8 text-center text-sm text-slate-400">
+                        No transactions saved for this selection.
+                      </div>
+                    )}
                   </div>
                   {transactions.length ? (
-                    transactions.map((transaction) => {
-                      const isSell = transaction.type === "SELL";
-                      const currentAmount = isSell
-                        ? null
-                        : transaction.quantity * (summary.latestPrice ?? transaction.navOrPrice);
-                      const profitLoss = currentAmount === null ? null : currentAmount - transaction.amount;
-
-                      return (
-                        <div
-                          key={transaction.id}
-                          className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] items-center border-b border-white/10 px-4 py-4 text-sm last:border-b-0"
-                        >
-                          <span className="text-white">{transaction.tradeDate}</span>
-                          <span className="flex items-center gap-2 text-slate-300">
-                            {isSell ? (
-                              <ArrowDownLeft className="h-4 w-4 text-rose-300" aria-hidden />
-                            ) : (
-                              <ArrowUpRight className="h-4 w-4 text-emerald-300" aria-hidden />
-                            )}
-                            {transactionTypeLabel(transaction.type, transaction.asset.type)}
-                          </span>
-                          <span className="text-right font-medium text-white">{transaction.quantity.toFixed(3)}</span>
-                          <span className="text-right text-slate-300">{formatNav(transaction.navOrPrice)}</span>
-                          <span className={isSell ? "text-right font-semibold text-rose-200" : "text-right font-semibold text-emerald-200"}>
-                            {isSell ? "-" : "+"}
-                            {formatCurrency(transaction.amount)}
-                          </span>
-                          <span className="text-right font-semibold text-white">
-                            {currentAmount === null ? "-" : formatCurrency(currentAmount)}
-                          </span>
-                          <span className={`text-right font-semibold ${profitLoss === null ? "text-slate-500" : profitLoss >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-                            {profitLoss === null ? "-" : `${profitLoss >= 0 ? "+" : ""}${formatCurrency(profitLoss)}`}
-                          </span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="p-8 text-center text-sm text-slate-400">
-                      No transactions saved for this selection.
-                    </div>
-                  )}
+                    <TablePagination
+                      {...transactionPagination}
+                      onPageChange={transactionPagination.setPage}
+                      onPageSizeChange={transactionPagination.setPageSize}
+                    />
+                  ) : null}
                 </div>
               </section>
             </>

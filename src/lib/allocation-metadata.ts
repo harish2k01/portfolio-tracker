@@ -3,6 +3,11 @@ export type AllocationPoint = {
   value: number;
 };
 
+export type WeightedAllocationInput = {
+  amount: number;
+  allocation?: AllocationPoint[];
+};
+
 export function parseStoredAllocation(value: unknown): AllocationPoint[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -75,4 +80,55 @@ export function inferMarketCapAllocation(name: string, category?: string | null)
   }
 
   return undefined;
+}
+
+export function aggregateWeightedAllocation(inputs: WeightedAllocationInput[]) {
+  const groups = new Map<string, number>();
+  let allocatedAmount = 0;
+
+  for (const input of inputs) {
+    if (!input.allocation?.length || input.amount <= 0) {
+      continue;
+    }
+
+    const allocation = input.allocation
+      .map((point) => ({
+        name: point.name.trim(),
+        value: Number(point.value),
+      }))
+      .filter(
+        (point) =>
+          point.name &&
+          point.name.toLowerCase() !== "unclassified" &&
+          Number.isFinite(point.value) &&
+          point.value > 0,
+      );
+    const rawTotal = allocation.reduce((sum, point) => sum + point.value, 0);
+    const scale = rawTotal > 0 && rawTotal <= 1.5 ? 100 : 1;
+    const scaledTotal = rawTotal * scale;
+    const totalPercent = Math.min(scaledTotal, 100);
+    const pointDenominator = scaledTotal > 100 ? scaledTotal : 100;
+
+    if (!totalPercent) {
+      continue;
+    }
+
+    allocatedAmount += input.amount * (totalPercent / 100);
+
+    for (const point of allocation) {
+      const amount = input.amount * ((point.value * scale) / pointDenominator);
+      groups.set(point.name, (groups.get(point.name) ?? 0) + amount);
+    }
+  }
+
+  return [...groups.entries()]
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      value: allocatedAmount
+        ? Number(((amount / allocatedAmount) * 100).toFixed(2))
+        : 0,
+    }))
+    .filter((point) => point.value > 0)
+    .sort((left, right) => right.value - left.value);
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 type AdminUser = {
   id: string;
@@ -35,6 +36,7 @@ export function AdminSettings({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const userPagination = usePagination(users);
 
   async function load() {
     const [settingsResponse, usersResponse] = await Promise.all([
@@ -178,7 +180,7 @@ export function AdminSettings({
           <CardDescription>Activate or deactivate non-current users</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {users.map((user) => (
+          {userPagination.items.map((user) => (
             <div
               key={user.id}
               className="grid gap-4 rounded-lg border border-white/10 bg-black/[0.16] p-4 md:grid-cols-[1fr_auto_auto]"
@@ -204,6 +206,14 @@ export function AdminSettings({
               </Button>
             </div>
           ))}
+          {users.length ? (
+            <TablePagination
+              {...userPagination}
+              className="rounded-md border border-[var(--line)]"
+              onPageChange={userPagination.setPage}
+              onPageSizeChange={userPagination.setPageSize}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

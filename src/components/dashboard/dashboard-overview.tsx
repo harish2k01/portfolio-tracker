@@ -22,6 +22,7 @@ import type { AllocationPoint, HoldingRow, PortfolioDashboard, PortfolioTimeline
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 const allocationPalettes = {
   "Asset split": ["#0787e5", "#00a866", "#f3a325"],
@@ -396,10 +397,12 @@ export function DashboardOverview({
         (holding) =>
           holding.assetClass === filter ||
           (holding.category ?? "") === filter ||
+          holding.assetAllocation?.some((point) => point.name === filter) ||
           holding.sectorAllocation?.some((point) => point.name === filter) ||
           holding.marketCapAllocation?.some((point) => point.name === filter),
       )
     : typeFilteredHoldings;
+  const holdingsPagination = usePagination(filteredHoldings);
 
   if (!dashboard || !summary) {
     return <EmptyState title="Loading portfolio..." />;
@@ -460,21 +463,30 @@ export function DashboardOverview({
           data={assetSplit}
           label="Asset class"
           emptyText="Add holdings to calculate Equity, Debt, and Commodities."
-          onSelect={setFilter}
+          onSelect={(name) => {
+            setFilter(name);
+            holdingsPagination.setPage(1);
+          }}
         />
         <AllocationCard
           title="Market cap split"
           data={dashboard.allocations.marketCap}
           label="Market cap"
           emptyText="Market-cap metadata is unavailable from the provider for these holdings."
-          onSelect={setFilter}
+          onSelect={(name) => {
+            setFilter(name);
+            holdingsPagination.setPage(1);
+          }}
         />
         <AllocationCard
           title="Sector allocation"
           data={dashboard.allocations.sectors}
           label="Sector"
           emptyText="Sector metadata is unavailable from the provider for these holdings."
-          onSelect={setFilter}
+          onSelect={(name) => {
+            setFilter(name);
+            holdingsPagination.setPage(1);
+          }}
         />
       </div>
 
@@ -491,13 +503,24 @@ export function DashboardOverview({
                 type="button"
                 size="sm"
                 variant={holdingView === item ? "default" : "secondary"}
-                onClick={() => setHoldingView(item)}
+                onClick={() => {
+                  setHoldingView(item);
+                  holdingsPagination.setPage(1);
+                }}
               >
                 {item === "ALL" ? "All" : item === "MF" ? "MF" : "Stocks"}
               </Button>
             ))}
             {filter ? (
-              <Button type="button" size="sm" variant="secondary" onClick={() => setFilter(null)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setFilter(null);
+                  holdingsPagination.setPage(1);
+                }}
+              >
                 Clear
               </Button>
             ) : null}
@@ -513,7 +536,7 @@ export function DashboardOverview({
                 <span className="text-right">Current</span>
                 <span className="text-right">Returns</span>
               </div>
-              {filteredHoldings.map((holding: HoldingRow) => (
+              {holdingsPagination.items.map((holding: HoldingRow) => (
                 <button
                   key={holding.assetId}
                   type="button"
@@ -538,6 +561,11 @@ export function DashboardOverview({
                   </div>
                 </button>
               ))}
+              <TablePagination
+                {...holdingsPagination}
+                onPageChange={holdingsPagination.setPage}
+                onPageSizeChange={holdingsPagination.setPageSize}
+              />
             </div>
           ) : (
             <EmptyState title={filter ? "No holdings match this allocation." : "Add transactions to see holdings here."} action={filter ? undefined : onOpenTransactions} />
