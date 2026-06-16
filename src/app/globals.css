@@ -1,30 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fbfcfd;
-  --foreground: #172234;
-  --muted: #738091;
+  --background: #f6f8fb;
+  --foreground: #111827;
+  --muted: #667085;
   --panel: #ffffff;
-  --panel-soft: #f5f7fa;
-  --line: #e8edf2;
-  --line-strong: #cfd8e3;
-  --primary: #0787e5;
-  --primary-hover: #006fc4;
+  --panel-soft: #f2f5f9;
+  --line: #e1e8f0;
+  --line-strong: #c6d0dc;
+  --primary: #1277d3;
+  --primary-hover: #0a64b3;
   --primary-foreground: #ffffff;
-  --accent: #0787e5;
-  --focus: rgba(7, 135, 229, 0.2);
-  --positive: #00a866;
-  --positive-soft: rgba(0, 168, 102, 0.09);
-  --negative: #e72b4d;
-  --negative-soft: rgba(231, 43, 77, 0.08);
-  --negative-soft-strong: rgba(231, 43, 77, 0.14);
-  --sidebar-bg: #ffffff;
-  --sidebar-soft: #f1f5f9;
-  --sidebar-line: #e2e8f0;
-  --sidebar-text: #172234;
-  --sidebar-muted: #738091;
-  --sidebar-active: #e8f3fc;
-  --sidebar-active-text: #006fc4;
+  --accent: #1277d3;
+  --focus: rgba(18, 119, 211, 0.24);
+  --positive: #078a55;
+  --positive-soft: rgba(7, 138, 85, 0.1);
+  --negative: #d92d4c;
+  --negative-soft: rgba(217, 45, 76, 0.1);
+  --negative-soft-strong: rgba(217, 45, 76, 0.16);
+  --warning: #b7791f;
+  --warning-soft: rgba(183, 121, 31, 0.12);
+  --row-hover: #f7faff;
+  --sidebar-bg: #172433;
+  --sidebar-soft: rgba(255, 255, 255, 0.08);
+  --sidebar-line: rgba(255, 255, 255, 0.16);
+  --sidebar-text: #f8fafc;
+  --sidebar-muted: #aeb9c7;
+  --sidebar-active: rgba(255, 255, 255, 0.12);
+  --sidebar-active-text: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-md: 0 12px 28px rgba(17, 24, 39, 0.08);
 }
 
 @theme inline {
@@ -52,86 +57,96 @@ body {
 .glass-panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 2px rgba(23, 34, 52, 0.025);
+  box-shadow: var(--shadow-sm);
   transition:
     border-color 220ms ease,
     box-shadow 220ms ease,
-    transform 220ms ease;
+    background-color 220ms ease;
 }
 
 .glass-panel:hover {
   border-color: var(--line-strong);
-  box-shadow: 0 8px 24px rgba(23, 34, 52, 0.055);
+  box-shadow: var(--shadow-md);
 }
 
 .theme-light {
-  --background: #fbfcfd;
-  --foreground: #172234;
-  --muted: #738091;
+  --background: #f6f8fb;
+  --foreground: #111827;
+  --muted: #667085;
   --panel: #ffffff;
-  --panel-soft: #f5f7fa;
-  --line: #e8edf2;
-  --line-strong: #cfd8e3;
-  --primary: #0787e5;
-  --primary-hover: #006fc4;
+  --panel-soft: #f2f5f9;
+  --line: #e1e8f0;
+  --line-strong: #c6d0dc;
+  --primary: #1277d3;
+  --primary-hover: #0a64b3;
   --primary-foreground: #ffffff;
-  --accent: #0787e5;
-  --focus: rgba(7, 135, 229, 0.2);
-  --positive: #00a866;
-  --positive-soft: rgba(0, 168, 102, 0.09);
-  --negative: #e72b4d;
-  --negative-soft: rgba(231, 43, 77, 0.08);
-  --negative-soft-strong: rgba(231, 43, 77, 0.14);
-  --sidebar-bg: #ffffff;
-  --sidebar-soft: #f1f5f9;
-  --sidebar-line: #e2e8f0;
-  --sidebar-text: #172234;
-  --sidebar-muted: #738091;
-  --sidebar-active: #e8f3fc;
-  --sidebar-active-text: #006fc4;
+  --accent: #1277d3;
+  --focus: rgba(18, 119, 211, 0.24);
+  --positive: #078a55;
+  --positive-soft: rgba(7, 138, 85, 0.1);
+  --negative: #d92d4c;
+  --negative-soft: rgba(217, 45, 76, 0.1);
+  --negative-soft-strong: rgba(217, 45, 76, 0.16);
+  --warning: #b7791f;
+  --warning-soft: rgba(183, 121, 31, 0.12);
+  --row-hover: #f7faff;
+  --sidebar-bg: #172433;
+  --sidebar-soft: rgba(255, 255, 255, 0.08);
+  --sidebar-line: rgba(255, 255, 255, 0.16);
+  --sidebar-text: #f8fafc;
+  --sidebar-muted: #aeb9c7;
+  --sidebar-active: rgba(255, 255, 255, 0.12);
+  --sidebar-active-text: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-md: 0 12px 28px rgba(17, 24, 39, 0.08);
   color: var(--foreground);
 }
 
 .theme-dark {
-  --background: #111827;
+  --background: #101823;
   --foreground: #f5f7fa;
-  --muted: #9aa5b3;
-  --panel: #182130;
-  --panel-soft: #202b3a;
-  --line: #2c394a;
-  --line-strong: #425168;
-  --primary: #eef2f6;
-  --primary-hover: #ffffff;
-  --primary-foreground: #151d2a;
-  --accent: #47adf1;
-  --focus: rgba(71, 173, 241, 0.22);
-  --positive: #52c997;
-  --positive-soft: rgba(82, 201, 151, 0.1);
-  --negative: #f08aa0;
-  --negative-soft: rgba(240, 138, 160, 0.1);
-  --negative-soft-strong: rgba(240, 138, 160, 0.16);
-  --sidebar-bg: #243140;
-  --sidebar-soft: rgba(255, 255, 255, 0.1);
-  --sidebar-line: #3a4858;
+  --muted: #a9b5c4;
+  --panel: #162131;
+  --panel-soft: #1d2a3a;
+  --line: #2d3c50;
+  --line-strong: #43556f;
+  --primary: #4aa3ff;
+  --primary-hover: #7bc0ff;
+  --primary-foreground: #07111f;
+  --accent: #4aa3ff;
+  --focus: rgba(74, 163, 255, 0.28);
+  --positive: #48c78e;
+  --positive-soft: rgba(72, 199, 142, 0.12);
+  --negative: #ff7d96;
+  --negative-soft: rgba(255, 125, 150, 0.12);
+  --negative-soft-strong: rgba(255, 125, 150, 0.18);
+  --warning: #f0b34f;
+  --warning-soft: rgba(240, 179, 79, 0.13);
+  --row-hover: rgba(255, 255, 255, 0.045);
+  --sidebar-bg: #1e2b3a;
+  --sidebar-soft: rgba(255, 255, 255, 0.09);
+  --sidebar-line: #38495d;
   --sidebar-text: #f8fafc;
   --sidebar-muted: #b8c1cc;
-  --sidebar-active: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.13);
   --sidebar-active-text: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.16);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.22);
   color: var(--foreground);
 }
 
 .app-header {
-  background: #16212e;
-  border-color: #263545;
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-line);
   color: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .app-menu {
   background: var(--sidebar-bg);
   border-color: var(--sidebar-line);
   color: var(--sidebar-text);
-  box-shadow: 2px 0 18px rgba(15, 23, 42, 0.08);
+  box-shadow: 1px 0 0 var(--sidebar-line);
 }
 
 .app-menu-item {
@@ -153,13 +168,11 @@ body {
 .app-menu-item:hover {
   background: var(--sidebar-soft) !important;
   color: var(--sidebar-text) !important;
-  transform: translateX(2px);
 }
 
 .app-menu-item:hover svg,
 .app-menu-item-active svg {
   color: var(--sidebar-active-text) !important;
-  transform: scale(1.08);
 }
 
 .app-menu-item-active {
@@ -208,21 +221,21 @@ body {
 }
 
 .badge-default {
-  border-color: rgba(7, 135, 229, 0.3);
-  background: rgba(7, 135, 229, 0.1);
-  color: #006fc4;
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  background: color-mix(in srgb, var(--primary) 11%, transparent);
+  color: var(--primary);
 }
 
 .badge-success {
-  border-color: rgba(0, 168, 102, 0.3);
-  background: rgba(0, 168, 102, 0.1);
-  color: #007c4b;
+  border-color: color-mix(in srgb, var(--positive) 30%, transparent);
+  background: var(--positive-soft);
+  color: var(--positive);
 }
 
 .badge-warning {
-  border-color: rgba(211, 132, 0, 0.32);
-  background: rgba(243, 163, 37, 0.13);
-  color: #9a5e00;
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .badge-muted {
@@ -232,9 +245,9 @@ body {
 }
 
 .badge-danger {
-  border-color: rgba(231, 43, 77, 0.3);
-  background: rgba(231, 43, 77, 0.1);
-  color: #bd1636;
+  border-color: color-mix(in srgb, var(--negative) 30%, transparent);
+  background: var(--negative-soft);
+  color: var(--negative);
 }
 
 .theme-dark .badge-default,
@@ -337,11 +350,11 @@ select:disabled {
 }
 
 .theme-light aside {
-  background: var(--panel) !important;
+  background: var(--sidebar-bg) !important;
 }
 
 .theme-light aside header {
-  background: rgba(255, 255, 255, 0.96) !important;
+  background: color-mix(in srgb, var(--sidebar-bg) 94%, transparent) !important;
 }
 
 .theme-light .app-header {
@@ -374,7 +387,7 @@ select:disabled {
 }
 
 .animate-in {
-  animation: rise-in 420ms ease both;
+  animation: rise-in 260ms ease both;
 }
 
 .animate-fade {
@@ -390,16 +403,15 @@ select:disabled {
 }
 
 .motion-card {
-  animation: panel-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
   transition:
     border-color 220ms ease,
     box-shadow 220ms ease,
-    transform 220ms ease;
+    background-color 220ms ease;
 }
 
 .motion-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(23, 34, 52, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .portfolio-loading-overlay {

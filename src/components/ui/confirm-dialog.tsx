@@ -36,29 +36,29 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
       <button className="absolute inset-0 cursor-default" type="button" aria-label={cancelLabel} onClick={onClose} />
-      <div className={`modal-panel relative max-h-[90vh] w-full overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5 shadow-xl ${size === "large" ? "max-w-7xl" : "max-w-md"}`}>
+      <div className={`modal-panel relative max-h-[90vh] w-full overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--panel)] p-6 shadow-xl ${size === "large" ? "max-w-7xl" : "max-w-md"}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className={tone === "danger" ? "rounded-lg bg-rose-400/15 p-2 text-rose-200" : "rounded-lg bg-blue-500/10 p-2 text-blue-600"}>
+            <span className={tone === "danger" ? "rounded-lg bg-[var(--negative-soft)] p-2 text-[var(--negative)]" : "rounded-lg bg-blue-500/10 p-2 text-[var(--primary)]"}>
               <AlertTriangle className="h-5 w-5" aria-hidden />
             </span>
             <div>
-              <h3 className="text-lg font-semibold text-white">{title}</h3>
-              {description ? <p className="mt-1 text-sm text-slate-400">{description}</p> : null}
+              <h3 className="text-lg font-semibold text-[var(--foreground)]">{title}</h3>
+              {description ? <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{description}</p> : null}
             </div>
           </div>
           <button
             type="button"
-            className="rounded-md p-1 text-slate-400 transition hover:bg-white/[0.08] hover:text-white"
+            className="rounded-md p-1 text-[var(--muted)] transition hover:bg-[var(--panel-soft)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
             aria-label={cancelLabel}
             onClick={onClose}
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        {children ? <div className="mt-4 rounded-lg border border-white/10 bg-black/[0.16] p-3 text-sm text-slate-300">{children}</div> : null}
+        {children ? <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 text-sm text-[var(--foreground)]">{children}</div> : null}
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose} disabled={isBusy}>
             {cancelLabel}

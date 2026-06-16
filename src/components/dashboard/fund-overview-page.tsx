@@ -78,12 +78,12 @@ type FundPayload =
     };
 
 const ranges: ChartRange[] = ["1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "ALL"];
-const allocationColors = ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"];
+const allocationColors = ["#1277d3", "#536dfe", "#f0a62a", "#20a4c8", "#7c8fa6", "#8b6f47"];
 const tooltipStyle = {
-  background: "#111827",
-  border: "1px solid rgba(148,163,184,0.24)",
+  background: "var(--panel)",
+  border: "1px solid var(--line)",
   borderRadius: "8px",
-  color: "#f8fafc",
+  color: "var(--foreground)",
 };
 
 export function FundOverviewPage({
@@ -151,7 +151,7 @@ export function FundOverviewPage({
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+        <div className="rounded-lg border border-[var(--negative)]/30 bg-[var(--negative-soft)] p-4 text-sm text-[var(--negative)]">
           {error}
         </div>
       ) : null}
@@ -190,7 +190,7 @@ export function FundOverviewPage({
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="min-h-[420px]">
                   <div className="mb-3">
-                    <p className={cn("text-3xl font-semibold", (details?.changePercent ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                    <p className={cn("text-3xl font-semibold", (details?.changePercent ?? 0) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]")}>
                       {formatPercent(details?.changePercent)}
                     </p>
                     <p className="mt-1 text-sm text-[var(--muted)]">{range} return</p>
@@ -331,7 +331,7 @@ function FundLineChart({
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#00a884"
+            stroke="var(--primary)"
             strokeWidth={3}
             dot={false}
             activeDot={{ r: 5, stroke: "#f8fafc", strokeWidth: 2 }}
@@ -410,8 +410,8 @@ function Metric({
       <span
         className={cn(
           "mt-2 block text-lg font-semibold text-[var(--foreground)]",
-          tone === "positive" && "text-emerald-500",
-          tone === "negative" && "text-rose-500",
+          tone === "positive" && "text-[var(--positive)]",
+          tone === "negative" && "text-[var(--negative)]",
         )}
       >
         {value}

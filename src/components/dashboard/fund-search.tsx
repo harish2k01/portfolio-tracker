@@ -55,12 +55,12 @@ type Detail = {
 const stockRanges: ChartRange[] = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "ALL"];
 const fundRanges: ChartRange[] = ["1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "ALL"];
 const selectClass =
-  "h-10 w-full rounded-md border border-slate-300/15 bg-black/[0.22] px-3 text-sm text-white outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
+  "h-10 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 text-sm text-[var(--foreground)] outline-none transition hover:border-[var(--line-strong)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";
 const tooltipStyle = {
-  background: "#111827",
-  border: "1px solid rgba(148,163,184,0.24)",
+  background: "var(--panel)",
+  border: "1px solid var(--line)",
   borderRadius: "8px",
-  color: "#f8fafc",
+  color: "var(--foreground)",
 };
 
 export function FundSearch({
@@ -317,7 +317,7 @@ export function FundSearch({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-500" />
+            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
             <Input
               className="pl-9"
               value={query}
@@ -325,30 +325,30 @@ export function FundSearch({
               placeholder="Search Indian stock, ETF, or mutual fund"
             />
           </div>
-          {error && !selected ? <p className="text-sm text-rose-200">{error}</p> : null}
+          {error && !selected ? <p className="text-sm text-[var(--negative)]">{error}</p> : null}
           {results.length ? (
-            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/[0.12]">
+            <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
               {results.map((asset) => (
                 <button
                   key={assetKey(asset)}
                   type="button"
-                  className="grid w-full gap-3 border-b border-white/10 px-4 py-3 text-left transition last:border-b-0 hover:bg-white/[0.06] md:grid-cols-[1fr_auto]"
+                  className="grid w-full gap-3 border-b border-[var(--line)] px-4 py-3 text-left transition last:border-b-0 hover:bg-[var(--row-hover)] md:grid-cols-[1fr_auto]"
                   onClick={() => openPanel(asset)}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-white">{asset.name}</span>
-                    <span className="text-xs text-slate-500">{asset.symbol ?? asset.schemeCode ?? asset.exchange}</span>
+                    <span className="block truncate text-sm font-semibold text-[var(--foreground)]">{asset.name}</span>
+                    <span className="text-xs text-[var(--muted)]">{asset.symbol ?? asset.schemeCode ?? asset.exchange}</span>
                   </span>
                   <Badge variant="muted">{assetTypeLabel(asset.type)}</Badge>
                 </button>
               ))}
             </div>
           ) : query.trim().length >= 2 && !isSearching ? (
-            <div className="rounded-lg border border-dashed border-white/15 p-6 text-center text-sm text-slate-400">
+            <div className="rounded-lg border border-dashed border-[var(--line)] p-6 text-center text-sm text-[var(--muted)]">
               No matching live results.
             </div>
           ) : null}
-          {isSearching ? <p className="text-sm text-slate-400">Searching...</p> : null}
+          {isSearching ? <p className="text-sm text-[var(--muted)]">Searching...</p> : null}
         </CardContent>
       </Card>
 
@@ -433,18 +433,18 @@ function InvestmentActionPanel({
   const isSipMandate = actionMode === "SIP_MANDATE";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
       <button className="absolute inset-0 cursor-default" type="button" aria-label="Close investment action" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[1120px] flex-col overflow-y-auto border-l border-white/10 bg-[#0b1120] shadow-2xl shadow-black animate-slide-in">
-        <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0b1120]/92 px-5 py-4 backdrop-blur">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[1120px] flex-col overflow-y-auto border-l border-[var(--line)] bg-[var(--background)] shadow-xl animate-slide-in">
+        <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--panel)]/95 px-5 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap gap-2">
                 <Badge>{assetTypeLabel(selected.type)}</Badge>
                 <Badge variant="muted">{selected.symbol ?? selected.schemeCode}</Badge>
               </div>
-              <h2 className="truncate text-2xl font-semibold text-white">{detail?.name ?? selected.name}</h2>
-              <p className="mt-1 truncate text-sm text-slate-400">
+              <h2 className="truncate text-2xl font-semibold text-[var(--foreground)]">{detail?.name ?? selected.name}</h2>
+              <p className="mt-1 truncate text-sm text-[var(--muted)]">
                 {detail?.category ?? detail?.exchange ?? selected.category ?? selected.amc ?? "Live chart and transaction actions"}
               </p>
             </div>
@@ -455,12 +455,12 @@ function InvestmentActionPanel({
         </header>
 
         <div className="space-y-5 p-5">
-          <section className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+          <section className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4">
             <div className="mb-4 flex items-center gap-2">
               <LineChartIcon className="h-4 w-4 text-blue-500" aria-hidden />
               <div>
-                <p className="text-sm font-semibold text-white">Performance</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-semibold text-[var(--foreground)]">Performance</p>
+                <p className="text-xs text-[var(--muted)]">
                   {selected.type === "MUTUAL_FUND" ? "Mutual fund charts start at 1W" : "NSE/BSE charts include 1D"}
                 </p>
               </div>
@@ -486,7 +486,7 @@ function InvestmentActionPanel({
             </div>
           </section>
 
-          <form className="rounded-lg border border-white/10 bg-white/[0.035] p-4" onSubmit={onSubmit}>
+          <form className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4" onSubmit={onSubmit}>
             <div className="mb-4 flex flex-wrap gap-2">
               {actions.map((option) => (
                 <Button
@@ -541,21 +541,21 @@ function InvestmentActionPanel({
                   <Input id="search-action-units" readOnly value={calculatedUnits.toFixed(3)} />
                 </div>
               )}
-              <div className="rounded-lg border border-white/10 bg-black/[0.16] p-3 text-sm">
-                <p className="text-slate-500">NAV/price</p>
-                <p className="font-semibold text-white">
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 text-sm">
+                <p className="text-[var(--muted)]">NAV/price</p>
+                <p className="font-semibold text-[var(--foreground)]">
                   {isSipMandate ? "At due entries" : navOrPrice !== null ? formatNav(navOrPrice) : "Loading"}
                 </p>
                 {!isSipMandate ? (
                   <>
-                    <p className="mt-1 text-xs text-slate-500">Units {calculatedUnits.toFixed(3)}</p>
-                    <p className="mt-1 text-xs text-slate-500">Net {formatCurrency(netAmount)}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">Units {calculatedUnits.toFixed(3)}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">Net {formatCurrency(netAmount)}</p>
                   </>
                 ) : null}
               </div>
             </div>
 
-            {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
+            {error ? <p className="mt-4 text-sm text-[var(--negative)]">{error}</p> : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button type="submit" disabled={isSaving}>
                 {isSipMandate ? <CalendarClock className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
@@ -590,7 +590,7 @@ function SimpleNavChart({
   return (
     <div className="h-[360px]">
       {isLoading && !data.length ? (
-        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-white/15 text-sm text-slate-400">
+        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[var(--line)] text-sm text-[var(--muted)]">
           Loading chart
         </div>
       ) : data.length ? (
@@ -619,7 +619,7 @@ function SimpleNavChart({
             <Line
               type="monotone"
               dataKey="value"
-              stroke="#0787e5"
+              stroke="var(--primary)"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 5, stroke: "#f8fafc", strokeWidth: 2 }}
@@ -627,7 +627,7 @@ function SimpleNavChart({
           </LineChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-white/15 text-sm text-slate-400">
+        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[var(--line)] text-sm text-[var(--muted)]">
           Chart data unavailable from provider.
         </div>
       )}

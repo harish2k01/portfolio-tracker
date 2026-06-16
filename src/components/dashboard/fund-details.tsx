@@ -35,17 +35,17 @@ type FundDetailsProps = {
 };
 
 const tooltipStyle = {
-  background: "#111827",
-  border: "1px solid rgba(148,163,184,0.24)",
+  background: "var(--panel)",
+  border: "1px solid var(--line)",
   borderRadius: "8px",
-  color: "#f8fafc",
+  color: "var(--foreground)",
 };
 
 export function FundDetails({ details }: FundDetailsProps) {
   return (
-    <main className="theme-light min-h-screen bg-[#fbfcfd] px-4 py-4 sm:px-6 lg:px-8">
+    <main className="theme-light min-h-screen bg-[var(--background)] px-4 py-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1320px] space-y-5">
-        <header className="glass-panel rounded-lg p-5">
+        <header className="glass-panel rounded-xl p-6">
           <Link href="/" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "mb-5")}>
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Dashboard
@@ -56,14 +56,14 @@ export function FundDetails({ details }: FundDetailsProps) {
                 <Badge>{assetTypeLabel(details.type)}</Badge>
                 {details.schemeCode ? <Badge variant="muted">{details.schemeCode}</Badge> : null}
               </div>
-              <h1 className="max-w-4xl text-3xl font-semibold tracking-normal text-white">
+              <h1 className="max-w-4xl text-3xl font-semibold tracking-normal text-[var(--foreground)]">
                 {details.name}
               </h1>
-              <p className="mt-2 text-slate-400">{details.amc ?? details.category}</p>
+              <p className="mt-2 text-[var(--muted)]">{details.amc ?? details.category}</p>
             </div>
             <div className="text-left lg:text-right">
-              <p className="text-sm uppercase tracking-[0.16em] text-slate-500">Current NAV</p>
-              <p className="mt-2 text-3xl font-semibold text-white">
+              <p className="text-sm uppercase tracking-[0.16em] text-[var(--muted)]">Current NAV</p>
+              <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
                 {details.value !== null ? formatNav(details.value) : "Unavailable"}
               </p>
             </div>
@@ -82,8 +82,8 @@ export function FundDetails({ details }: FundDetailsProps) {
                   <AreaChart data={details.history} margin={{ left: 0, right: 12, top: 10 }}>
                     <defs>
                       <linearGradient id="fundNavFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0787e5" stopOpacity={0.14} />
-                        <stop offset="95%" stopColor="#0787e5" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.14} />
+                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="rgba(255,255,255,0.07)" vertical={false} />
@@ -95,11 +95,11 @@ export function FundDetails({ details }: FundDetailsProps) {
                       tickFormatter={(value) => formatNav(Number(value))}
                     />
                     <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatNav(Number(value))} />
-                    <Area type="monotone" dataKey="value" stroke="#0787e5" strokeWidth={2.5} fill="url(#fundNavFill)" />
+                    <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2.5} fill="url(#fundNavFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-white/15 text-sm text-slate-400">
+                <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[var(--line)] text-sm text-[var(--muted)]">
                   NAV history unavailable from provider.
                 </div>
               )}
@@ -126,12 +126,12 @@ function ListCard({ title, items }: { title: string; items: string[] }) {
       <CardContent className="space-y-3">
         {items.length ? (
           items.slice(0, 10).map((item) => (
-            <div key={item} className="rounded-md border border-white/10 bg-black/[0.16] p-3 text-sm text-slate-300">
+            <div key={item} className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 text-sm text-[var(--foreground)]">
               {item}
             </div>
           ))
         ) : (
-          <p className="text-sm text-slate-500">Unavailable from provider.</p>
+          <p className="text-sm text-[var(--muted)]">Unavailable from provider.</p>
         )}
       </CardContent>
     </Card>

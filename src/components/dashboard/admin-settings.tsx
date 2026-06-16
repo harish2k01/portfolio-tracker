@@ -120,11 +120,11 @@ export function AdminSettings({
           <CardDescription>First user is admin. Signup stays closed unless reopened here.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border border-white/10 bg-black/[0.16] p-4">
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-white">Public signup</p>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm font-semibold text-[var(--foreground)]">Public signup</p>
+                <p className="text-sm text-[var(--muted)]">
                   {signupEnabled ? "New users can register." : "New registrations are blocked."}
                 </p>
               </div>
@@ -169,8 +169,8 @@ export function AdminSettings({
               {isCreating ? "Sending" : "Add User"}
             </Button>
           </form>
-          {message ? <p className="mt-3 text-sm text-emerald-200">{message}</p> : null}
-          {error ? <p className="mt-3 text-sm text-rose-200">{error}</p> : null}
+          {message ? <p className="mt-3 text-sm text-[var(--positive)]">{message}</p> : null}
+          {error ? <p className="mt-3 text-sm text-[var(--negative)]">{error}</p> : null}
         </CardContent>
       </Card>
 
@@ -183,11 +183,11 @@ export function AdminSettings({
           {userPagination.items.map((user) => (
             <div
               key={user.id}
-              className="grid gap-4 rounded-lg border border-white/10 bg-black/[0.16] p-4 md:grid-cols-[1fr_auto_auto]"
+              className="grid gap-4 rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-4 md:grid-cols-[1fr_auto_auto]"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">{user.email}</p>
-                <p className="text-xs text-slate-500">{user.name ?? "Unnamed user"}</p>
+                <p className="truncate text-sm font-semibold text-[var(--foreground)]">{user.email}</p>
+                <p className="text-xs text-[var(--muted)]">{user.name ?? "Unnamed user"}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={user.role === "ADMIN" ? "default" : "muted"}>{user.role}</Badge>

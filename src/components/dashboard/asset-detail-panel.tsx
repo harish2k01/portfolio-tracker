@@ -55,10 +55,10 @@ const stockRanges: ChartRange[] = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y
 const fundRanges: ChartRange[] = ["1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "ALL"];
 
 const tooltipStyle = {
-  background: "#111827",
-  border: "1px solid rgba(148,163,184,0.24)",
+  background: "var(--panel)",
+  border: "1px solid var(--line)",
   borderRadius: "8px",
-  color: "#f8fafc",
+  color: "var(--foreground)",
 };
 
 export function AssetDetailPanel({
@@ -215,7 +215,7 @@ export function AssetDetailPanel({
     <div
       className={cn(
         mode === "modal"
-          ? "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-fade"
+          ? "fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm animate-fade"
           : "page-transition",
       )}
       role={mode === "modal" ? "dialog" : undefined}
@@ -226,23 +226,23 @@ export function AssetDetailPanel({
       ) : null}
       <aside
         className={cn(
-          "flex w-full flex-col overflow-y-auto bg-[#0b1120]",
+          "flex w-full flex-col overflow-y-auto bg-[var(--background)]",
           mode === "modal"
-            ? "absolute right-0 top-0 h-full max-w-[1120px] border-l border-white/10 shadow-2xl shadow-black animate-slide-in"
-            : "min-h-[calc(100vh-2rem)] rounded-lg border border-white/10",
+            ? "absolute right-0 top-0 h-full max-w-[1120px] border-l border-[var(--line)] shadow-xl animate-slide-in"
+            : "min-h-[calc(100vh-2rem)] rounded-xl border border-[var(--line)]",
         )}
       >
-        <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0b1120]/92 px-5 py-4 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--panel)]/95 px-5 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap gap-2">
                 {asset ? <Badge>{assetTypeLabel(asset.type)}</Badge> : null}
                 {target.kind === "sip" ? <Badge variant="success">SIP history</Badge> : <Badge variant="muted">Asset history</Badge>}
               </div>
-              <h2 className="truncate text-2xl font-semibold text-white">
+              <h2 className="truncate text-2xl font-semibold text-[var(--foreground)]">
                 {payload?.details.name ?? asset?.name ?? "Loading history"}
               </h2>
-              <p className="mt-1 truncate text-sm text-slate-400">
+              <p className="mt-1 truncate text-sm text-[var(--muted)]">
                 {payload?.details.category ?? payload?.details.exchange ?? asset?.schemeCode ?? asset?.symbol ?? "Live chart and entries"}
               </p>
             </div>
@@ -254,17 +254,24 @@ export function AssetDetailPanel({
 
         <div className="space-y-5 p-5">
           {error ? (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+            <div className="rounded-lg border border-[var(--negative)]/30 bg-[var(--negative-soft)] p-4 text-sm text-[var(--negative)]">
               {error}
             </div>
           ) : null}
 
           {isLoading ? (
-            <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-white/10 bg-white/[0.03]">
+            <div className="flex min-h-[520px] items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--panel)]">
               <div className="text-center">
-                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-blue-500" />
-                <p className="mt-4 text-sm font-semibold text-white">Loading history</p>
-                <p className="mt-1 text-sm text-slate-500">Fetching saved entries and live chart data</p>
+                <div className="portfolio-loader-bars mx-auto" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-[var(--foreground)]">Loading history</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Fetching saved entries and live chart data</p>
               </div>
             </div>
           ) : (
@@ -287,11 +294,11 @@ export function AssetDetailPanel({
                 <Metric label="Redeemable units" value={summary.units.toFixed(3)} />
               </section>
 
-              <section className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+              <section className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4">
                 <div className="mb-4">
                   <div>
-                    <p className="text-sm font-semibold text-white">Performance</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">Performance</p>
+                    <p className="text-xs text-[var(--muted)]">
                       {asset?.type === "MUTUAL_FUND" ? "Mutual fund charts start at 1W" : "NSE/BSE charts include 1D"}
                     </p>
                   </div>
@@ -323,7 +330,7 @@ export function AssetDetailPanel({
                         <Line
                           type="monotone"
                           dataKey="value"
-                          stroke="#0787e5"
+                          stroke="var(--primary)"
                           strokeWidth={3}
                           dot={false}
                           activeDot={{ r: 5, stroke: "#f8fafc", strokeWidth: 2 }}
@@ -331,7 +338,7 @@ export function AssetDetailPanel({
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-white/15 text-sm text-slate-400">
+                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[var(--line)] text-sm text-[var(--muted)]">
                       Chart data unavailable from provider.
                     </div>
                   )}
@@ -352,17 +359,17 @@ export function AssetDetailPanel({
               </section>
 
               {target.kind === "asset" && asset?.type === "MUTUAL_FUND" && summary.units > 0 ? (
-                <section className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+                <section className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4">
                   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-white">Redeem</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm font-semibold text-[var(--foreground)]">Redeem</p>
+                      <p className="text-xs text-[var(--muted)]">
                         Choose units or amount. The final entry is saved only after confirmation.
                       </p>
                     </div>
-                    <div className="rounded-lg border border-white/10 bg-black/[0.16] px-3 py-2 text-sm">
-                      <span className="text-slate-500">Available </span>
-                      <span className="font-semibold text-white">{summary.units.toFixed(3)} units</span>
+                    <div className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] px-3 py-2 text-sm">
+                      <span className="text-[var(--muted)]">Available </span>
+                      <span className="font-semibold text-[var(--foreground)]">{summary.units.toFixed(3)} units</span>
                     </div>
                   </div>
                   <form className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto]" onSubmit={handleRedeemSubmit}>
@@ -416,26 +423,26 @@ export function AssetDetailPanel({
                       </Button>
                     </div>
                   </form>
-                  <div className="mt-3 text-xs text-slate-500">
+                  <div className="mt-3 text-xs text-[var(--muted)]">
                     NAV {redeemQuote.price ? formatNav(redeemQuote.price) : "Unavailable"}
                     {redeemQuote.amount && redeemQuote.units ? (
                       <span> / Estimated {formatCurrency(redeemQuote.amount)} for {redeemQuote.units.toFixed(3)} units</span>
                     ) : null}
                   </div>
-                  {redeemQuote.error ? <p className="mt-2 text-sm text-rose-200">{redeemQuote.error}</p> : null}
+                  {redeemQuote.error ? <p className="mt-2 text-sm text-[var(--negative)]">{redeemQuote.error}</p> : null}
                 </section>
               ) : null}
 
               <section>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Transaction history</h3>
-                    <p className="text-sm text-slate-400">{transactions.length} entries</p>
+                    <h3 className="text-xl font-semibold text-[var(--foreground)]">Transaction history</h3>
+                    <p className="text-sm text-[var(--muted)]">{transactions.length} entries</p>
                   </div>
                 </div>
-                <div className="overflow-hidden rounded-lg border border-white/10">
+                <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
                   <div className="overflow-x-auto">
-                    <div className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    <div className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] border-b border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
                       <span>Date</span>
                       <span>Type</span>
                       <span className="text-right">Units</span>
@@ -455,34 +462,34 @@ export function AssetDetailPanel({
                         return (
                           <div
                             key={transaction.id}
-                            className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] items-center border-b border-white/10 px-4 py-4 text-sm last:border-b-0"
+                            className="grid min-w-[980px] grid-cols-[0.9fr_0.9fr_0.8fr_0.9fr_1fr_1fr_1fr] items-center border-b border-[var(--line)] px-4 py-4 text-sm last:border-b-0"
                           >
-                            <span className="text-white">{transaction.tradeDate}</span>
-                            <span className="flex items-center gap-2 text-slate-300">
+                            <span className="text-[var(--foreground)]">{transaction.tradeDate}</span>
+                            <span className="flex items-center gap-2 text-[var(--muted)]">
                               {isSell ? (
-                                <ArrowDownLeft className="h-4 w-4 text-rose-300" aria-hidden />
+                                <ArrowDownLeft className="h-4 w-4 text-[var(--negative)]" aria-hidden />
                               ) : (
-                                <ArrowUpRight className="h-4 w-4 text-emerald-300" aria-hidden />
+                                <ArrowUpRight className="h-4 w-4 text-[var(--positive)]" aria-hidden />
                               )}
                               {transactionTypeLabel(transaction.type, transaction.asset.type)}
                             </span>
-                            <span className="text-right font-medium text-white">{transaction.quantity.toFixed(3)}</span>
-                            <span className="text-right text-slate-300">{formatNav(transaction.navOrPrice)}</span>
-                            <span className={isSell ? "text-right font-semibold text-rose-200" : "text-right font-semibold text-emerald-200"}>
+                            <span className="text-right font-medium text-[var(--foreground)]">{transaction.quantity.toFixed(3)}</span>
+                            <span className="text-right text-[var(--muted)]">{formatNav(transaction.navOrPrice)}</span>
+                            <span className={isSell ? "text-right font-semibold text-[var(--negative)]" : "text-right font-semibold text-[var(--positive)]"}>
                               {isSell ? "-" : "+"}
                               {formatCurrency(transaction.amount)}
                             </span>
-                            <span className="text-right font-semibold text-white">
+                            <span className="text-right font-semibold text-[var(--foreground)]">
                               {currentAmount === null ? "-" : formatCurrency(currentAmount)}
                             </span>
-                            <span className={`text-right font-semibold ${profitLoss === null ? "text-slate-500" : profitLoss >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                            <span className={`text-right font-semibold ${profitLoss === null ? "text-[var(--muted)]" : profitLoss >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
                               {profitLoss === null ? "-" : `${profitLoss >= 0 ? "+" : ""}${formatCurrency(profitLoss)}`}
                             </span>
                           </div>
                         );
                       })
                     ) : (
-                      <div className="p-8 text-center text-sm text-slate-400">
+                      <div className="p-8 text-center text-sm text-[var(--muted)]">
                         No transactions saved for this selection.
                       </div>
                     )}
@@ -513,13 +520,13 @@ export function AssetDetailPanel({
       >
         <div className="space-y-2">
           <p>
-            Units: <span className="font-semibold text-white">{redeemQuote.units.toFixed(3)}</span>
+            Units: <span className="font-semibold text-[var(--foreground)]">{redeemQuote.units.toFixed(3)}</span>
           </p>
           <p>
-            Amount: <span className="font-semibold text-white">{formatCurrency(redeemQuote.amount)}</span>
+            Amount: <span className="font-semibold text-[var(--foreground)]">{formatCurrency(redeemQuote.amount)}</span>
           </p>
           <p>
-            NAV: <span className="font-semibold text-white">{redeemQuote.price ? formatNav(redeemQuote.price) : "Unavailable"}</span>
+            NAV: <span className="font-semibold text-[var(--foreground)]">{redeemQuote.price ? formatNav(redeemQuote.price) : "Unavailable"}</span>
           </p>
         </div>
       </ConfirmDialog>
@@ -775,14 +782,14 @@ function Metric({
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-300"
+      ? "text-[var(--positive)]"
       : tone === "negative"
-        ? "text-rose-300"
-        : "text-white";
+        ? "text-[var(--negative)]"
+        : "text-[var(--foreground)]";
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">{label}</p>
       <p className={`mt-3 text-xl font-semibold ${toneClass}`}>{value}</p>
     </div>
   );
