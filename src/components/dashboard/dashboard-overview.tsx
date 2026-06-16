@@ -27,7 +27,18 @@ import { TablePagination, usePagination } from "@/components/ui/pagination";
 const allocationPalettes = {
   "Asset split": ["#0787e5", "#00a866", "#f3a325"],
   "Market cap split": ["#6246ea", "#0787e5", "#00a866"],
-  "Sector allocation": ["#0787e5", "#00a866", "#f3a325", "#8b5cf6", "#e72b4d", "#00a7b5"],
+  "Sector allocation": [
+    "#0787e5",
+    "#00a866",
+    "#f3a325",
+    "#8b5cf6",
+    "#e72b4d",
+    "#00a7b5",
+    "#f97316",
+    "#84cc16",
+    "#ec4899",
+    "#64748b",
+  ],
 } as const;
 const assetClassOrder = ["Equity", "Debt", "Commodities"] as const;
 const portfolioRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
@@ -270,7 +281,7 @@ function AllocationCard({
                 <span>{label}</span>
                 <span>Allocation</span>
               </div>
-              {shownData.slice(0, 6).map((point, index) => (
+              {shownData.map((point, index) => (
                 <button
                   key={point.name}
                   type="button"

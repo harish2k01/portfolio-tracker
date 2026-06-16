@@ -19,6 +19,8 @@ import { Label } from "@/components/ui/label";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
 import { assetTypeLabel, transactionTypeLabel } from "@/lib/labels";
+import { cn } from "@/lib/utils";
+import { calculateXirr } from "@/lib/xirr";
 import type { ChartRange, SerializedAsset, SipRow, TransactionRow } from "@/types/portfolio";
 
 type DetailTarget =
@@ -248,7 +250,7 @@ export function AssetDetailPanel({
             </div>
           ) : (
             <>
-              <section className="grid gap-4 lg:grid-cols-4">
+              <section className={cn("grid gap-4", asset?.type === "MUTUAL_FUND" ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
                 <Metric label="Current amount" value={formatCurrency(summary.currentValue)} />
                 <Metric label="Invested amount" value={formatCurrency(summary.investedAmount)} />
                 <Metric
@@ -256,6 +258,13 @@ export function AssetDetailPanel({
                   value={`${summary.gain >= 0 ? "+" : ""}${formatCurrency(summary.gain)} (${summary.gainPercent.toFixed(2)}%)`}
                   tone={summary.gain >= 0 ? "positive" : "negative"}
                 />
+                {asset?.type === "MUTUAL_FUND" ? (
+                  <Metric
+                    label="XIRR"
+                    value={formatXirr(summary.xirr)}
+                    tone={summary.xirr === null ? "default" : summary.xirr >= 0 ? "positive" : "negative"}
+                  />
+                ) : null}
                 <Metric label="Redeemable units" value={summary.units.toFixed(3)} />
               </section>
 
@@ -659,6 +668,15 @@ function summarizeTransactions(transactions: TransactionRow[], latestPrice: numb
   const fallbackPrice = latestPrice ?? transactions[0]?.navOrPrice ?? null;
   const currentValue = fallbackPrice ? units * fallbackPrice : 0;
   const gain = currentValue - investedAmount;
+  const xirr = calculateXirr([
+    ...chronologicalTransactions.map((transaction) => ({
+      date: transaction.tradeDate,
+      amount: transaction.type === "SELL" ? transaction.amount : -transaction.amount,
+    })),
+    ...(currentValue > 0
+      ? [{ amount: currentValue, date: new Date().toISOString().slice(0, 10) }]
+      : []),
+  ]);
 
   return {
     units: Math.max(units, 0),
@@ -667,7 +685,16 @@ function summarizeTransactions(transactions: TransactionRow[], latestPrice: numb
     gain,
     gainPercent: investedAmount ? (gain / investedAmount) * 100 : 0,
     latestPrice: fallbackPrice,
+    xirr,
   };
+}
+
+function formatXirr(value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return "NA";
+  }
+
+  return `${(value * 100).toFixed(2)}%`;
 }
 
 function buildRedeemQuote({
