@@ -13,6 +13,9 @@ export type SerializedAsset = {
   exchange: string | null;
   category: string | null;
   amc: string | null;
+  identity?: string;
+  sectorAllocation?: AllocationPoint[];
+  marketCapAllocation?: AllocationPoint[];
 };
 
 export type InvestmentSearchResult = {
@@ -32,6 +35,13 @@ export type AllocationPoint = {
   amount?: number;
 };
 
+export type FundHoldingPoint = {
+  name: string;
+  weight: number;
+  sector?: string;
+  instrument?: string;
+};
+
 export type HoldingRow = {
   assetId: string;
   name: string;
@@ -49,6 +59,7 @@ export type HoldingRow = {
   assetAllocation?: AllocationPoint[];
   sectorAllocation?: AllocationPoint[];
   marketCapAllocation?: AllocationPoint[];
+  fundHoldings?: FundHoldingPoint[];
 };
 
 export type SipRow = {
@@ -97,5 +108,6 @@ export type PortfolioDashboard = {
     assets: AllocationPoint[];
     sectors: AllocationPoint[];
     marketCap: AllocationPoint[];
+    stockConcentration: AllocationPoint[];
   };
 };

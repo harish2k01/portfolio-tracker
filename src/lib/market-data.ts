@@ -35,7 +35,7 @@ export type InvestmentQuote = {
   value: number | null;
   changePercent: number | null;
   history: PricePoint[];
-  holdings?: Array<{ name: string; weight: number }>;
+  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
@@ -677,8 +677,7 @@ async function fetchMfDataDetails(schemeCode: string) {
           name: holding.name ?? holding.company ?? "Unknown",
           weight: toNumber(holding.weight ?? holding.percentage) ?? 0,
         }))
-        .filter((holding) => holding.weight > 0)
-        .slice(0, 10),
+        .filter((holding) => holding.weight > 0),
       sectorAllocation: data.sectors
         ?.map((sector) => ({
           name: sector.name ?? sector.sector ?? "Unknown",

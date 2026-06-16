@@ -48,7 +48,7 @@ export type GrowwFundPortfolio = {
   name?: string;
   category?: string;
   amc?: string;
-  holdings?: Array<{ name: string; weight: number }>;
+  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
   assetAllocation?: AllocationPoint[];
   sectorAllocation?: AllocationPoint[];
   marketCapAllocation?: AllocationPoint[];
@@ -200,8 +200,9 @@ async function loadGrowwFundPortfolio(schemeCode: string, schemeName: string) {
       .map((holding) => ({
         name: holding.company_name?.trim() || "Unknown",
         weight: Number(holding.corpus_per),
-      }))
-      .slice(0, 10),
+        sector: holding.sector_name?.trim() || undefined,
+        instrument: holding.instrument_name?.trim() || holding.nature_name?.trim() || undefined,
+      })),
     assetAllocation: allocations.assetAllocation,
     sectorAllocation: allocations.sectorAllocation,
     marketCapAllocation: allocations.marketCapAllocation,

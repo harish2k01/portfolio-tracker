@@ -19,6 +19,8 @@ import { Label } from "@/components/ui/label";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
 import { assetTypeLabel, transactionTypeLabel } from "@/lib/labels";
+import { cn } from "@/lib/utils";
+import { calculateXirr } from "@/lib/xirr";
 import type { ChartRange, SerializedAsset, SipRow, TransactionRow } from "@/types/portfolio";
 
 type DetailTarget =
@@ -63,10 +65,12 @@ export function AssetDetailPanel({
   target,
   onClose,
   onChanged,
+  mode = "modal",
 }: {
   target: DetailTarget | null;
   onClose: () => void;
   onChanged: () => Promise<void>;
+  mode?: "modal" | "page";
 }) {
   const [range, setRange] = useState<ChartRange>("1Y");
   const [payload, setPayload] = useState<DetailPayload | null>(null);
@@ -208,9 +212,26 @@ export function AssetDetailPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-fade" role="dialog" aria-modal="true">
-      <button className="absolute inset-0 cursor-default" type="button" aria-label="Close history" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[1120px] flex-col overflow-y-auto border-l border-white/10 bg-[#0b1120] shadow-2xl shadow-black animate-slide-in">
+    <div
+      className={cn(
+        mode === "modal"
+          ? "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-fade"
+          : "page-transition",
+      )}
+      role={mode === "modal" ? "dialog" : undefined}
+      aria-modal={mode === "modal" ? true : undefined}
+    >
+      {mode === "modal" ? (
+        <button className="absolute inset-0 cursor-default" type="button" aria-label="Close history" onClick={onClose} />
+      ) : null}
+      <aside
+        className={cn(
+          "flex w-full flex-col overflow-y-auto bg-[#0b1120]",
+          mode === "modal"
+            ? "absolute right-0 top-0 h-full max-w-[1120px] border-l border-white/10 shadow-2xl shadow-black animate-slide-in"
+            : "min-h-[calc(100vh-2rem)] rounded-lg border border-white/10",
+        )}
+      >
         <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0b1120]/92 px-5 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -248,7 +269,7 @@ export function AssetDetailPanel({
             </div>
           ) : (
             <>
-              <section className="grid gap-4 lg:grid-cols-4">
+              <section className={cn("grid gap-4", asset?.type === "MUTUAL_FUND" ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
                 <Metric label="Current amount" value={formatCurrency(summary.currentValue)} />
                 <Metric label="Invested amount" value={formatCurrency(summary.investedAmount)} />
                 <Metric
@@ -256,6 +277,13 @@ export function AssetDetailPanel({
                   value={`${summary.gain >= 0 ? "+" : ""}${formatCurrency(summary.gain)} (${summary.gainPercent.toFixed(2)}%)`}
                   tone={summary.gain >= 0 ? "positive" : "negative"}
                 />
+                {asset?.type === "MUTUAL_FUND" ? (
+                  <Metric
+                    label="XIRR"
+                    value={formatXirr(summary.xirr)}
+                    tone={summary.xirr === null ? "default" : summary.xirr >= 0 ? "positive" : "negative"}
+                  />
+                ) : null}
                 <Metric label="Redeemable units" value={summary.units.toFixed(3)} />
               </section>
 
@@ -659,6 +687,15 @@ function summarizeTransactions(transactions: TransactionRow[], latestPrice: numb
   const fallbackPrice = latestPrice ?? transactions[0]?.navOrPrice ?? null;
   const currentValue = fallbackPrice ? units * fallbackPrice : 0;
   const gain = currentValue - investedAmount;
+  const xirr = calculateXirr([
+    ...chronologicalTransactions.map((transaction) => ({
+      date: transaction.tradeDate,
+      amount: transaction.type === "SELL" ? transaction.amount : -transaction.amount,
+    })),
+    ...(currentValue > 0
+      ? [{ amount: currentValue, date: new Date().toISOString().slice(0, 10) }]
+      : []),
+  ]);
 
   return {
     units: Math.max(units, 0),
@@ -667,7 +704,16 @@ function summarizeTransactions(transactions: TransactionRow[], latestPrice: numb
     gain,
     gainPercent: investedAmount ? (gain / investedAmount) * 100 : 0,
     latestPrice: fallbackPrice,
+    xirr,
   };
+}
+
+function formatXirr(value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return "NA";
+  }
+
+  return `${(value * 100).toFixed(2)}%`;
 }
 
 function buildRedeemQuote({

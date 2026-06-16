@@ -36,6 +36,7 @@ export type HoldingRow = {
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
+  fundHoldings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
 };
 
 export function formatCurrency(value: number) {
@@ -124,6 +125,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         currentValue: 0,
         gain: 0,
         gainPercent: 0,
+        fundHoldings: parseStoredFundHoldings(transaction.asset.holdings),
         sectorAllocation: parseStoredAllocation(transaction.asset.sectorAllocation),
         marketCapAllocation: parseStoredAllocation(transaction.asset.marketCapAllocation),
       } satisfies HoldingRow);
@@ -184,12 +186,15 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           quote.marketCapAllocation ??
           row.marketCapAllocation ??
           (row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, category));
+        const fundHoldings = quote.holdings ?? row.fundHoldings;
 
         if (
+          (quote.holdings?.length && !row.fundHoldings?.length) ||
           (quote.sectorAllocation?.length && !row.sectorAllocation?.length) ||
           (quote.marketCapAllocation?.length && !row.marketCapAllocation?.length)
         ) {
           await persistAllocationMetadata(row.assetId, {
+            holdings: row.fundHoldings?.length ? undefined : quote.holdings,
             sectorAllocation: row.sectorAllocation?.length ? undefined : quote.sectorAllocation,
             marketCapAllocation: row.marketCapAllocation?.length
               ? undefined
@@ -210,6 +215,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           assetAllocation,
           sectorAllocation,
           marketCapAllocation,
+          fundHoldings,
         };
       } catch {
         const currentPrice = row.currentPrice;
@@ -229,6 +235,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
           marketCapAllocation:
             row.marketCapAllocation ??
             (row.type === "MUTUAL_FUND" ? undefined : inferMarketCapAllocation(row.name, row.category)),
+          fundHoldings: row.fundHoldings,
         };
       }
     }),
@@ -256,6 +263,7 @@ export async function getDashboard(userId: string) {
   const assetAllocation = allocationFromHoldings(holdings);
   const sectorAllocation = weightedProviderAllocation(holdings, "sectorAllocation");
   const marketCapSplit = weightedProviderAllocation(holdings, "marketCapAllocation");
+  const stockConcentration = stockConcentrationFromHoldings(holdings);
 
   return {
     summary: {
@@ -283,6 +291,7 @@ export async function getDashboard(userId: string) {
       assets: assetAllocation,
       sectors: sectorAllocation,
       marketCap: marketCapSplit,
+      stockConcentration,
     },
   };
 }
@@ -561,6 +570,9 @@ export function serializeAsset(asset: {
   exchange: string | null;
   category: string | null;
   amc: string | null;
+  sectorAllocation?: unknown;
+  marketCapAllocation?: unknown;
+  holdings?: unknown;
 }) {
   return {
     id: asset.id,
@@ -572,7 +584,45 @@ export function serializeAsset(asset: {
     category: asset.category,
     amc: asset.amc,
     identity: assetIdentity(asset),
+    sectorAllocation: parseStoredAllocation(asset.sectorAllocation),
+    marketCapAllocation: parseStoredAllocation(asset.marketCapAllocation),
   };
+}
+
+function parseStoredFundHoldings(value: unknown): HoldingRow["fundHoldings"] {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const points: NonNullable<HoldingRow["fundHoldings"]> = [];
+
+  for (const point of value) {
+    if (!point || typeof point !== "object") {
+      continue;
+    }
+
+    const candidate = point as {
+      name?: unknown;
+      weight?: unknown;
+      sector?: unknown;
+      instrument?: unknown;
+    };
+    const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+    const weight = Number(candidate.weight);
+
+    if (!name || !Number.isFinite(weight) || weight <= 0) {
+      continue;
+    }
+
+    points.push({
+      name,
+      weight,
+      ...(typeof candidate.sector === "string" ? { sector: candidate.sector } : {}),
+      ...(typeof candidate.instrument === "string" ? { instrument: candidate.instrument } : {}),
+    });
+  }
+
+  return points.length ? points : undefined;
 }
 
 function allocationFromHoldings(rows: HoldingRow[]) {
@@ -588,6 +638,89 @@ function allocationFromHoldings(rows: HoldingRow[]) {
 
 function allocationBasis(row: Pick<HoldingRow, "currentValue" | "investedAmount">) {
   return row.currentValue > 0 ? row.currentValue : row.investedAmount;
+}
+
+function stockConcentrationFromHoldings(rows: HoldingRow[]) {
+  const groups = new Map<string, { name: string; amount: number }>();
+
+  for (const row of rows) {
+    const amount = allocationBasis(row);
+
+    if (amount <= 0) {
+      continue;
+    }
+
+    if (row.type === "STOCK") {
+      addStockExposure(groups, row.name, amount);
+      continue;
+    }
+
+    const stockHoldings = row.fundHoldings?.filter(isStockUnderlyingHolding) ?? [];
+
+    if (!stockHoldings.length) {
+      continue;
+    }
+
+    const totalWeight = stockHoldings.reduce((sum, holding) => sum + holding.weight, 0);
+    const denominator = totalWeight > 100 ? totalWeight : 100;
+
+    for (const holding of stockHoldings) {
+      addStockExposure(groups, holding.name, amount * (holding.weight / denominator));
+    }
+  }
+
+  const totalStockExposure = [...groups.values()].reduce((sum, point) => sum + point.amount, 0);
+
+  if (!totalStockExposure) {
+    return [];
+  }
+
+  return [...groups.values()]
+    .map((point) => ({
+      name: point.name,
+      amount: Number(point.amount.toFixed(2)),
+      value: Number(((point.amount / totalStockExposure) * 100).toFixed(2)),
+    }))
+    .filter((point) => point.value > 0)
+    .sort((left, right) => right.value - left.value);
+}
+
+function addStockExposure(groups: Map<string, { name: string; amount: number }>, name: string, amount: number) {
+  const cleanedName = normalizeStockName(name);
+
+  if (!cleanedName || amount <= 0) {
+    return;
+  }
+
+  const key = cleanedName.toLowerCase();
+  const current = groups.get(key);
+  groups.set(key, {
+    name: current?.name ?? cleanedName,
+    amount: (current?.amount ?? 0) + amount,
+  });
+}
+
+function isStockUnderlyingHolding(holding: { name: string; instrument?: string }) {
+  const text = `${holding.name} ${holding.instrument ?? ""}`.toLowerCase();
+
+  if (/repo|treps|cash|net current|receivable|payable|margin|collateral|bill|bond|debenture|government securit|t-bill|treasury/i.test(text)) {
+    return false;
+  }
+
+  if (holding.instrument) {
+    return /equity|stock|foreign|adr|gdr/i.test(holding.instrument);
+  }
+
+  return true;
+}
+
+function normalizeStockName(name: string) {
+  return name
+    .replace(/\s+/g, " ")
+    .replace(/\b(limited|ltd\.?|inc\.?|corp\.?|corporation|company|co\.)$/i, (match) =>
+      /^ltd/i.test(match) ? "Ltd" : match.trim(),
+    )
+    .trim();
 }
 
 function classifyAssetClass(
@@ -619,6 +752,7 @@ function classifyAssetClass(
 async function persistAllocationMetadata(
   assetId: string,
   metadata: {
+    holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
     sectorAllocation?: Array<{ name: string; value: number }>;
     marketCapAllocation?: Array<{ name: string; value: number }>;
   },
@@ -627,6 +761,7 @@ async function persistAllocationMetadata(
     await prisma.asset.update({
       where: { id: assetId },
       data: {
+        ...(metadata.holdings?.length ? { holdings: metadata.holdings } : {}),
         ...(metadata.sectorAllocation?.length
           ? { sectorAllocation: metadata.sectorAllocation }
           : {}),
