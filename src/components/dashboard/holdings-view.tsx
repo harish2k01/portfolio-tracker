@@ -6,6 +6,7 @@ import type { HoldingRow, PortfolioDashboard } from "@/types/portfolio";
 import { formatCurrency } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InvestmentIdentity } from "@/components/ui/investment-icon";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 type HoldingView = "ALL" | "MF" | "STOCKS";
@@ -128,12 +129,12 @@ export function HoldingsView({
                   className="grid w-full gap-3 border-b border-[var(--line)] px-4 py-4 text-left transition duration-200 last:border-b-0 hover:bg-[var(--row-hover)] lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] lg:items-center"
                   onClick={() => onOpenAsset(holding.assetId)}
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">{holding.name}</p>
-                    <p className="mt-1 text-xs text-[var(--muted)]">
-                      {holding.assetClass} / {assetTypeLabel(holding.type)}
-                    </p>
-                  </div>
+                  <InvestmentIdentity
+                    name={holding.name}
+                    type={holding.type}
+                    symbol={holding.symbol}
+                    subtitle={`${holding.assetClass} / ${assetTypeLabel(holding.type)}`}
+                  />
                   <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">{holding.quantity.toFixed(3)}</p>
                   <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">
                     {formatCurrency(holding.investedAmount)}

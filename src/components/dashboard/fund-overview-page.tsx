@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Bookmark,
   ChevronRight,
-  LineChart as LineChartIcon,
   MoveLeft,
 } from "lucide-react";
 import {
@@ -19,6 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InvestmentIcon } from "@/components/ui/investment-icon";
+import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
 import { assetTypeLabel } from "@/lib/labels";
 import { cn } from "@/lib/utils";
@@ -97,18 +98,18 @@ export function FundOverviewPage({
 }) {
   const [range, setRange] = useState<ChartRange>("3Y");
   const [payload, setPayload] = useState<FundPayload | null>(null);
-  const [showAllHoldings, setShowAllHoldings] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const details = payload?.details;
   const transactions = useMemo(() => payload?.transactions ?? [], [payload?.transactions]);
+  const holdings = useMemo(() => details?.holdings ?? [], [details?.holdings]);
+  const holdingsPagination = usePagination(holdings);
   const investmentTarget = investmentDetailTarget(payload);
   const summary = useMemo(
     () => summarizeTransactions(transactions, details?.value ?? null),
     [details?.value, transactions],
   );
   const ticks = useMemo(() => buildDateTicks(details?.history ?? [], range), [details?.history, range]);
-  const visibleHoldings = showAllHoldings ? details?.holdings ?? [] : (details?.holdings ?? []).slice(0, 10);
   const type = getAssetType(payload, target);
   const code = getSchemeOrSymbol(payload, target);
 
@@ -118,7 +119,6 @@ export function FundOverviewPage({
     async function load() {
       setIsLoading(true);
       setError("");
-      setShowAllHoldings(false);
 
       try {
         setPayload(await fetchFundPayload(target, range, controller.signal));
@@ -137,6 +137,24 @@ export function FundOverviewPage({
     void load();
     return () => controller.abort();
   }, [range, target]);
+
+  if (isLoading && !details) {
+    return (
+      <section className="page-transition flex min-h-[calc(100vh-48px)] items-center justify-center">
+        <div className="portfolio-loader" role="status" aria-live="polite" aria-label="Loading fund details">
+          <p className="portfolio-loader-title">Loading...</p>
+          <div className="portfolio-loader-bars" aria-hidden>
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="page-transition space-y-5">
@@ -158,88 +176,87 @@ export function FundOverviewPage({
 
       <Card className="glass-panel overflow-hidden">
         <CardContent className="p-5 sm:p-7">
-          {isLoading && !details ? (
-            <div className="flex min-h-[520px] items-center justify-center text-sm text-[var(--muted)]">
-              Loading fund details...
-            </div>
-          ) : (
-            <div className="space-y-7">
-              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                <div className="min-w-0">
-                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--panel-soft)]">
-                    <LineChartIcon className="h-7 w-7 text-[var(--primary)]" aria-hidden />
-                  </div>
-                  <h1 className="max-w-4xl text-3xl font-semibold leading-tight text-[var(--foreground)]">
-                    {details?.name ?? targetLabel(target)}
-                  </h1>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Badge>{assetTypeLabel(type)}</Badge>
-                    {details?.category ? <Badge variant="muted">{compactCategory(details.category)}</Badge> : null}
-                    {details?.amc ? <Badge variant="muted">{details.amc}</Badge> : null}
-                    {code ? <Badge variant="muted">{code}</Badge> : null}
-                  </div>
+          <div className="space-y-7">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <InvestmentIcon
+                  name={details?.name ?? targetLabel(target)}
+                  type={type}
+                  symbol={details?.symbol ?? (target.kind === "search" ? target.asset.symbol : undefined)}
+                  amc={details?.amc ?? (target.kind === "search" ? target.asset.amc : undefined)}
+                  size="lg"
+                  className="mb-5"
+                />
+                <h1 className="max-w-4xl text-3xl font-semibold leading-tight text-[var(--foreground)]">
+                  {details?.name ?? targetLabel(target)}
+                </h1>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Badge>{assetTypeLabel(type)}</Badge>
+                  {details?.category ? <Badge variant="muted">{compactCategory(details.category)}</Badge> : null}
+                  {details?.amc ? <Badge variant="muted">{details.amc}</Badge> : null}
+                  {code ? <Badge variant="muted">{code}</Badge> : null}
                 </div>
-                <div className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 xl:text-right">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Current NAV</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
-                    {details?.value !== null && details?.value !== undefined ? formatNav(details.value) : "Unavailable"}
+              </div>
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 xl:text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Current NAV</p>
+                <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
+                  {details?.value !== null && details?.value !== undefined ? formatNav(details.value) : "Unavailable"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="min-h-[420px]">
+                <div className="mb-3">
+                  <p className={cn("text-3xl font-semibold", (details?.changePercent ?? 0) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]")}>
+                    {formatPercent(details?.changePercent)}
                   </p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">{range} return</p>
+                </div>
+                <FundLineChart data={details?.history ?? []} ticks={ticks} range={range} />
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {ranges.map((item) => (
+                    <Button
+                      key={item}
+                      type="button"
+                      size="sm"
+                      variant={range === item ? "default" : "secondary"}
+                      onClick={() => setRange(item)}
+                    >
+                      {item}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="min-h-[420px]">
-                  <div className="mb-3">
-                    <p className={cn("text-3xl font-semibold", (details?.changePercent ?? 0) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]")}>
-                      {formatPercent(details?.changePercent)}
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{range} return</p>
-                  </div>
-                  <FundLineChart data={details?.history ?? []} ticks={ticks} range={range} />
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    {ranges.map((item) => (
-                      <Button
-                        key={item}
-                        type="button"
-                        size="sm"
-                        variant={range === item ? "default" : "secondary"}
-                        onClick={() => setRange(item)}
-                      >
-                        {item}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Fact label="AMC" value={details?.amc} />
-                  <Fact label="Category" value={details?.category} />
-                  <Fact label="Scheme" value={code} />
-                  <Fact label="Data source" value="MFAPI / Groww / MFData" />
-                </div>
+              <div className="space-y-3">
+                <Fact label="AMC" value={details?.amc} />
+                <Fact label="Category" value={details?.category} />
+                <Fact label="Scheme" value={code} />
+                <Fact label="Data source" value="MFAPI / Groww / MFData" />
               </div>
-
-              {summary.investedAmount > 0 && investmentTarget ? (
-                <button
-                  type="button"
-                  className="grid w-full gap-4 rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-4 text-left transition hover:border-[var(--line-strong)] hover:bg-[var(--panel)] md:grid-cols-[1fr_1fr_1fr_auto] md:items-center"
-                  onClick={() => onOpenInvestment(investmentTarget)}
-                >
-                  <Metric label="Invested value" value={formatCurrency(summary.investedAmount)} />
-                  <Metric
-                    label="Total returns"
-                    value={`${summary.gain >= 0 ? "+" : ""}${formatCurrency(summary.gain)} (${summary.gainPercent.toFixed(2)}%)`}
-                    tone={summary.gain >= 0 ? "positive" : "negative"}
-                  />
-                  <Metric label="Current value" value={formatCurrency(summary.currentValue)} />
-                  <span className="flex items-center gap-2 text-sm font-semibold text-[var(--primary)]">
-                    Full details
-                    <ChevronRight className="h-4 w-4" aria-hidden />
-                  </span>
-                </button>
-              ) : null}
             </div>
-          )}
+
+            {summary.investedAmount > 0 && investmentTarget ? (
+              <button
+                type="button"
+                className="grid w-full gap-4 rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-4 text-left transition hover:border-[var(--line-strong)] hover:bg-[var(--panel)] md:grid-cols-[1fr_1fr_1fr_auto] md:items-center"
+                onClick={() => onOpenInvestment(investmentTarget)}
+              >
+                <Metric label="Invested value" value={formatCurrency(summary.investedAmount)} />
+                <Metric
+                  label="Total returns"
+                  value={`${summary.gain >= 0 ? "+" : ""}${formatCurrency(summary.gain)} (${summary.gainPercent.toFixed(2)}%)`}
+                  tone={summary.gain >= 0 ? "positive" : "negative"}
+                />
+                <Metric label="Current value" value={formatCurrency(summary.currentValue)} />
+                <span className="flex items-center gap-2 text-sm font-semibold text-[var(--primary)]">
+                  Full details
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </span>
+              </button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 
@@ -250,16 +267,11 @@ export function FundOverviewPage({
       </div>
 
       <Card className="glass-panel">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle>Holdings ({details?.holdings?.length ?? 0})</CardTitle>
-          {(details?.holdings?.length ?? 0) > 10 ? (
-            <Button type="button" size="sm" variant="secondary" onClick={() => setShowAllHoldings((current) => !current)}>
-              {showAllHoldings ? "Show less" : "See all"}
-            </Button>
-          ) : null}
+        <CardHeader>
+          <CardTitle>Holdings ({holdings.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {visibleHoldings.length ? (
+          {holdingsPagination.items.length ? (
             <div className="overflow-hidden rounded-lg border border-[var(--line)]">
               <div className="hidden grid-cols-[minmax(240px,1.4fr)_0.9fr_0.9fr_0.55fr] border-b border-[var(--line)] bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)] md:grid">
                 <span>Name</span>
@@ -267,17 +279,25 @@ export function FundOverviewPage({
                 <span>Instrument</span>
                 <span className="text-right">Assets</span>
               </div>
-              {visibleHoldings.map((holding) => (
+              {holdingsPagination.items.map((holding) => (
                 <div
                   key={`${holding.name}:${holding.weight}`}
                   className="grid gap-2 border-b border-[var(--line)] px-4 py-4 text-sm last:border-b-0 md:grid-cols-[minmax(240px,1.4fr)_0.9fr_0.9fr_0.55fr] md:items-center"
                 >
-                  <p className="font-semibold text-[var(--foreground)]">{holding.name}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <InvestmentIcon name={holding.name} type="STOCK" />
+                    <p className="truncate font-semibold text-[var(--foreground)]">{holding.name}</p>
+                  </div>
                   <p className="text-[var(--muted)] md:text-[var(--foreground)]">{holding.sector ?? "Unspecified"}</p>
                   <p className="text-[var(--muted)] md:text-[var(--foreground)]">{holding.instrument ?? "Equity"}</p>
                   <p className="font-semibold text-[var(--foreground)] md:text-right">{holding.weight.toFixed(2)}%</p>
                 </div>
               ))}
+              <TablePagination
+                {...holdingsPagination}
+                onPageChange={holdingsPagination.setPage}
+                onPageSizeChange={holdingsPagination.setPageSize}
+              />
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center text-sm text-[var(--muted)]">

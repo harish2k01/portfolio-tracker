@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
@@ -206,7 +207,10 @@ export function SipManager({
                         onMouseLeave={() => setActiveChartId(null)}
                       >
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="min-w-0 truncate font-semibold text-[var(--foreground)]">{item.name}</span>
+                          <span className="flex min-w-0 items-center gap-2">
+                            <InvestmentIcon name={item.name} type="MUTUAL_FUND" />
+                            <span className="min-w-0 truncate font-semibold text-[var(--foreground)]">{item.name}</span>
+                          </span>
                           <span className="shrink-0 font-semibold text-[var(--foreground)]">{percentage.toFixed(0)}%</span>
                         </div>
                         <div className="text-xs text-[var(--muted)]">
@@ -312,11 +316,19 @@ export function SipManager({
                   onClick={() => onOpenSip(sip.id)}
                   onKeyDown={(event) => openSipFromKeyboard(event, sip.id)}
                 >
-                  <div className="min-w-0">
-                    <h4 className="truncate text-sm font-semibold text-[var(--foreground)]">{sip.asset.name}</h4>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
-                      <CalendarDays className="h-4 w-4" aria-hidden />
-                      <span>Started {sip.startDate}</span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <InvestmentIcon
+                      name={sip.asset.name}
+                      type={sip.asset.type}
+                      symbol={sip.asset.symbol}
+                      amc={sip.asset.amc}
+                    />
+                    <div className="min-w-0">
+                      <h4 className="truncate text-sm font-semibold text-[var(--foreground)]">{sip.asset.name}</h4>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
+                        <CalendarDays className="h-4 w-4" aria-hidden />
+                        <span>Started {sip.startDate}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="lg:text-right">
@@ -395,7 +407,15 @@ export function SipManager({
           >
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-[var(--foreground)]">Edit SIP</h3>
-              <p className="mt-1 truncate text-sm text-[var(--muted)]">{editingSip.asset.name}</p>
+              <div className="mt-2 flex min-w-0 items-center gap-3">
+                <InvestmentIcon
+                  name={editingSip.asset.name}
+                  type={editingSip.asset.type}
+                  symbol={editingSip.asset.symbol}
+                  amc={editingSip.asset.amc}
+                />
+                <p className="truncate text-sm text-[var(--muted)]">{editingSip.asset.name}</p>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

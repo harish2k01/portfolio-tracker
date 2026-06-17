@@ -327,15 +327,13 @@ export function AuthForm({ mode, usersExist, signupEnabled }: AuthFormProps) {
             </form>
           ) : null}
 
-          <div className="mt-5 text-center text-sm text-[var(--muted)]">
-            {signupEnabled || !usersExist ? (
+          {signupEnabled || !usersExist ? (
+            <div className="mt-5 text-center text-sm text-[var(--muted)]">
               <Link href="/signup" className="text-[var(--primary)] hover:text-[var(--primary-hover)]">
                 Create an account
               </Link>
-            ) : (
-              <span>Signup is disabled by the admin.</span>
-            )}
-          </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </AuthShell>

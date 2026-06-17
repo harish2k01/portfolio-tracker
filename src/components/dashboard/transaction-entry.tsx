@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { InvestmentIdentity } from "@/components/ui/investment-icon";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 type ImportSummary = {
@@ -286,10 +287,13 @@ export function TransactionEntry({
                     onKeyDown={(event) => openTransactionFromKeyboard(event, transaction.asset.id)}
                   >
                   <p className="text-sm font-semibold text-[var(--foreground)]">{transaction.tradeDate}</p>
-                  <div className="min-w-0">
-                    <h4 className="truncate text-sm font-semibold text-[var(--foreground)]">{transaction.asset.name}</h4>
-                    <p className="mt-1 text-xs text-[var(--muted)]">{assetTypeLabel(transaction.asset.type)}</p>
-                  </div>
+                  <InvestmentIdentity
+                    name={transaction.asset.name}
+                    type={transaction.asset.type}
+                    symbol={transaction.asset.symbol}
+                    amc={transaction.asset.amc}
+                    subtitle={assetTypeLabel(transaction.asset.type)}
+                  />
                   <div>
                     <Badge variant="muted">
                       {transactionTypeLabel(transaction.type, transaction.asset.type)}
@@ -403,12 +407,12 @@ export function TransactionEntry({
                     checked={selectedSipAssetIds.includes(suggestion.assetId)}
                     onChange={() => toggleSipSuggestion(suggestion.assetId)}
                   />
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-[var(--foreground)]">{suggestion.assetName}</p>
-                    <p className="mt-1 text-xs text-[var(--muted)]">
-                      {suggestion.referenceTransactions.length} transactions in latest month
-                    </p>
-                  </div>
+                  <InvestmentIdentity
+                    name={suggestion.assetName}
+                    type="MUTUAL_FUND"
+                    subtitle={`${suggestion.referenceTransactions.length} transactions in latest month`}
+                    titleClassName="font-semibold"
+                  />
                   <Badge
                     className="w-fit justify-self-start whitespace-nowrap"
                     variant={suggestion.action === "CREATE" ? "default" : "muted"}
