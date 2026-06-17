@@ -10,11 +10,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownLeft, ArrowUpRight, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, MoveLeft, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { Label } from "@/components/ui/label";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
@@ -158,6 +159,22 @@ export function AssetDetailPanel({
     return null;
   }
 
+  if (mode === "page" && isLoading) {
+    return (
+      <section className="page-transition space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            <MoveLeft className="h-4 w-4" aria-hidden />
+            Back
+          </Button>
+        </div>
+        <div className="flex min-h-[calc(100vh-140px)] items-center justify-center">
+          <HistoryLoader />
+        </div>
+      </section>
+    );
+  }
+
   function handleRedeemSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -216,43 +233,66 @@ export function AssetDetailPanel({
       className={cn(
         mode === "modal"
           ? "fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm animate-fade"
-          : "page-transition",
+          : "page-transition space-y-5",
       )}
       role={mode === "modal" ? "dialog" : undefined}
       aria-modal={mode === "modal" ? true : undefined}
     >
       {mode === "modal" ? (
         <button className="absolute inset-0 cursor-default" type="button" aria-label="Close history" onClick={onClose} />
-      ) : null}
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            <MoveLeft className="h-4 w-4" aria-hidden />
+            Back
+          </Button>
+        </div>
+      )}
       <aside
         className={cn(
-          "flex w-full flex-col overflow-y-auto bg-[var(--background)]",
+          "flex w-full flex-col overflow-y-auto",
           mode === "modal"
-            ? "absolute right-0 top-0 h-full max-w-[1120px] border-l border-[var(--line)] shadow-xl animate-slide-in"
-            : "min-h-[calc(100vh-2rem)] rounded-xl border border-[var(--line)]",
+            ? "absolute right-0 top-0 h-full max-w-[1120px] border-l border-[var(--line)] bg-[var(--background)] shadow-xl animate-slide-in"
+            : "space-y-5 bg-transparent",
         )}
       >
-        <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--panel)]/95 px-5 py-4 backdrop-blur">
+        <header
+          className={cn(
+            "z-10 border border-[var(--line)] bg-[var(--panel)]/95 px-5 py-4 backdrop-blur",
+            mode === "modal" ? "sticky top-0 border-x-0 border-t-0" : "rounded-xl",
+          )}
+        >
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap gap-2">
-                {asset ? <Badge>{assetTypeLabel(asset.type)}</Badge> : null}
-                {target.kind === "sip" ? <Badge variant="success">SIP history</Badge> : <Badge variant="muted">Asset history</Badge>}
+            <div className="flex min-w-0 items-start gap-3">
+              <InvestmentIcon
+                name={payload?.details.name ?? asset?.name ?? "Loading history"}
+                type={asset?.type}
+                symbol={asset?.symbol}
+                amc={asset?.amc}
+                size="lg"
+              />
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {asset ? <Badge>{assetTypeLabel(asset.type)}</Badge> : null}
+                  {target.kind === "sip" ? <Badge variant="success">SIP history</Badge> : <Badge variant="muted">Asset history</Badge>}
+                </div>
+                <h2 className="truncate text-2xl font-semibold text-[var(--foreground)]">
+                  {payload?.details.name ?? asset?.name ?? "Loading history"}
+                </h2>
+                <p className="mt-1 truncate text-sm text-[var(--muted)]">
+                  {payload?.details.category ?? payload?.details.exchange ?? asset?.schemeCode ?? asset?.symbol ?? "Live chart and entries"}
+                </p>
               </div>
-              <h2 className="truncate text-2xl font-semibold text-[var(--foreground)]">
-                {payload?.details.name ?? asset?.name ?? "Loading history"}
-              </h2>
-              <p className="mt-1 truncate text-sm text-[var(--muted)]">
-                {payload?.details.category ?? payload?.details.exchange ?? asset?.schemeCode ?? asset?.symbol ?? "Live chart and entries"}
-              </p>
             </div>
-            <Button type="button" variant="secondary" size="icon" aria-label="Close" onClick={onClose}>
-              <X className="h-4 w-4" aria-hidden />
-            </Button>
+            {mode === "modal" ? (
+              <Button type="button" variant="secondary" size="icon" aria-label="Close" onClick={onClose}>
+                <X className="h-4 w-4" aria-hidden />
+              </Button>
+            ) : null}
           </div>
         </header>
 
-        <div className="space-y-5 p-5">
+        <div className={cn("space-y-5", mode === "modal" && "p-5")}>
           {error ? (
             <div className="rounded-lg border border-[var(--negative)]/30 bg-[var(--negative-soft)] p-4 text-sm text-[var(--negative)]">
               {error}
@@ -261,18 +301,7 @@ export function AssetDetailPanel({
 
           {isLoading ? (
             <div className="flex min-h-[520px] items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--panel)]">
-              <div className="text-center">
-                <div className="portfolio-loader-bars mx-auto" aria-hidden>
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <p className="mt-4 text-sm font-semibold text-[var(--foreground)]">Loading history</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">Fetching saved entries and live chart data</p>
-              </div>
+              <HistoryLoader />
             </div>
           ) : (
             <>
@@ -530,6 +559,22 @@ export function AssetDetailPanel({
           </p>
         </div>
       </ConfirmDialog>
+    </div>
+  );
+}
+
+function HistoryLoader() {
+  return (
+    <div className="portfolio-loader" role="status" aria-live="polite" aria-label="Loading history">
+      <p className="portfolio-loader-title">Loading...</p>
+      <div className="portfolio-loader-bars" aria-hidden>
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
     </div>
   );
 }

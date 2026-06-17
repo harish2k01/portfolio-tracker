@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Area,
   Cell,
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import type { AllocationPoint, HoldingRow, PortfolioDashboard, PortfolioTimelinePoint } from "@/types/portfolio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
 const allocationPalettes = {
@@ -40,7 +41,6 @@ const allocationPalettes = {
 } as const;
 const assetClassOrder = ["Equity", "Debt", "Commodities"] as const;
 const portfolioRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
-const stockConcentrationColors = ["#1277d3", "#536dfe", "#f0a62a", "#20a4c8", "#7c8fa6"];
 
 const tooltipStyle = {
   background: "var(--panel)",
@@ -230,8 +230,40 @@ function AllocationCard({
   onSelect: (name: string) => void;
 }) {
   const [activeName, setActiveName] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const shownData = normalizeKnownAllocations(data);
   const colors = allocationPalettes[title as keyof typeof allocationPalettes] ?? allocationPalettes["Sector allocation"];
+
+  useEffect(() => {
+    if (!activeName) {
+      return;
+    }
+
+    const list = listRef.current;
+    const row = rowRefs.current.get(activeName);
+
+    if (!list || !row) {
+      return;
+    }
+
+    const listRect = list.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+
+    if (rowRect.top >= listRect.top && rowRect.bottom <= listRect.bottom) {
+      return;
+    }
+
+    const rowTop = row.offsetTop;
+    const rowBottom = rowTop + row.offsetHeight;
+    const visibleTop = list.scrollTop;
+    const padding = 8;
+
+    list.scrollTo({
+      top: rowTop < visibleTop ? rowTop - padding : rowBottom - list.clientHeight + padding,
+      behavior: "smooth",
+    });
+  }, [activeName]);
 
   return (
     <Card className="glass-panel overflow-hidden animate-in">
@@ -274,7 +306,10 @@ function AllocationCard({
               </div>
             </div>
 
-            <div className={cn("space-y-3", shownData.length > 5 && "max-h-[268px] overflow-y-auto pr-2")}>
+            <div
+              ref={listRef}
+              className={cn("space-y-3", shownData.length > 5 && "max-h-[268px] overflow-y-auto pr-2")}
+            >
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <span>{label}</span>
                 <span>Allocation</span>
@@ -283,6 +318,13 @@ function AllocationCard({
                 <button
                   key={point.name}
                   type="button"
+                  ref={(node) => {
+                    if (node) {
+                      rowRefs.current.set(point.name, node);
+                    } else {
+                      rowRefs.current.delete(point.name);
+                    }
+                  }}
                   className={cn(
                     "grid min-h-[44px] w-full grid-cols-[1fr_auto] items-center gap-4 rounded-md p-2 text-left transition",
                     activeName === point.name
@@ -338,21 +380,13 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
         <CardContent className="p-5">
           {topStocks.length ? (
             <div className="space-y-5">
-              {topStocks.map((point, index) => (
+              {topStocks.map((point) => (
                 <div
                   key={point.name}
                   className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white"
-                      style={{
-                        backgroundColor: stockConcentrationColors[index % stockConcentrationColors.length],
-                        color: "#ffffff",
-                      }}
-                    >
-                      {point.name.slice(0, 1).toUpperCase()}
-                    </span>
+                    <InvestmentIcon name={point.name} type="STOCK" size="md" />
                     <span className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</span>
                   </div>
                   <div className="relative h-9 overflow-hidden rounded-md bg-[var(--panel-soft)]">
@@ -422,21 +456,13 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-5">
               <div className="space-y-3">
-                {otherStocks.map((point, index) => (
+                {otherStocks.map((point) => (
                   <div
                     key={point.name}
                     className="grid gap-3 rounded-md border border-[var(--line)] bg-[var(--panel-soft)] p-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)] md:items-center"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white"
-                        style={{
-                          backgroundColor: stockConcentrationColors[index % stockConcentrationColors.length],
-                          color: "#ffffff",
-                        }}
-                      >
-                        {point.name.slice(0, 1).toUpperCase()}
-                      </span>
+                      <InvestmentIcon name={point.name} type="STOCK" />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</p>
                         {point.amount ? (

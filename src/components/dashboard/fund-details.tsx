@@ -16,6 +16,7 @@ import { assetTypeLabel } from "@/lib/labels";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { cn } from "@/lib/utils";
 
 type FundDetailsProps = {
@@ -51,15 +52,18 @@ export function FundDetails({ details }: FundDetailsProps) {
             Dashboard
           </Link>
           <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Badge>{assetTypeLabel(details.type)}</Badge>
-                {details.schemeCode ? <Badge variant="muted">{details.schemeCode}</Badge> : null}
+            <div className="flex min-w-0 items-start gap-4">
+              <InvestmentIcon name={details.name} type="MUTUAL_FUND" amc={details.amc} size="lg" />
+              <div className="min-w-0">
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <Badge>{assetTypeLabel(details.type)}</Badge>
+                  {details.schemeCode ? <Badge variant="muted">{details.schemeCode}</Badge> : null}
+                </div>
+                <h1 className="max-w-4xl text-3xl font-semibold tracking-normal text-[var(--foreground)]">
+                  {details.name}
+                </h1>
+                <p className="mt-2 text-[var(--muted)]">{details.amc ?? details.category}</p>
               </div>
-              <h1 className="max-w-4xl text-3xl font-semibold tracking-normal text-[var(--foreground)]">
-                {details.name}
-              </h1>
-              <p className="mt-2 text-[var(--muted)]">{details.amc ?? details.category}</p>
             </div>
             <div className="text-left lg:text-right">
               <p className="text-sm uppercase tracking-[0.16em] text-[var(--muted)]">Current NAV</p>
@@ -108,7 +112,11 @@ export function FundDetails({ details }: FundDetailsProps) {
         </Card>
 
         <div className="grid gap-5 lg:grid-cols-3">
-          <ListCard title="Holdings" items={details.holdings?.map((item) => `${item.name} - ${item.weight}%`) ?? []} />
+          <ListCard
+            title="Holdings"
+            items={details.holdings?.map((item) => ({ name: item.name, value: `${item.weight}%` })) ?? []}
+            showInvestmentIcons
+          />
           <ListCard title="Sector Allocation" items={details.sectorAllocation?.map((item) => `${item.name} - ${item.value}%`) ?? []} />
           <ListCard title="Market Cap Allocation" items={details.marketCapAllocation?.map((item) => `${item.name} - ${item.value}%`) ?? []} />
         </div>
@@ -117,7 +125,15 @@ export function FundDetails({ details }: FundDetailsProps) {
   );
 }
 
-function ListCard({ title, items }: { title: string; items: string[] }) {
+function ListCard({
+  title,
+  items,
+  showInvestmentIcons = false,
+}: {
+  title: string;
+  items: Array<string | { name: string; value: string }>;
+  showInvestmentIcons?: boolean;
+}) {
   return (
     <Card className="glass-panel">
       <CardHeader>
@@ -125,11 +141,23 @@ function ListCard({ title, items }: { title: string; items: string[] }) {
       </CardHeader>
       <CardContent className="space-y-3">
         {items.length ? (
-          items.slice(0, 10).map((item) => (
-            <div key={item} className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 text-sm text-[var(--foreground)]">
-              {item}
-            </div>
-          ))
+          items.slice(0, 10).map((item) => {
+            const key = typeof item === "string" ? item : `${item.name}:${item.value}`;
+
+            return (
+              <div key={key} className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 text-sm text-[var(--foreground)]">
+                {showInvestmentIcons && typeof item !== "string" ? (
+                  <span className="flex min-w-0 items-center gap-3">
+                    <InvestmentIcon name={item.name} type="STOCK" />
+                    <span className="min-w-0 truncate font-semibold">{item.name}</span>
+                    <span className="ml-auto shrink-0 text-[var(--muted)]">{item.value}</span>
+                  </span>
+                ) : (
+                  <span>{typeof item === "string" ? item : `${item.name} - ${item.value}`}</span>
+                )}
+              </div>
+            );
+          })
         ) : (
           <p className="text-sm text-[var(--muted)]">Unavailable from provider.</p>
         )}

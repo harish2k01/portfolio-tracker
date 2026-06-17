@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InvestmentIcon, InvestmentIdentity } from "@/components/ui/investment-icon";
 import { Label } from "@/components/ui/label";
 
 type ActionMode = Exclude<TransactionType, "SIP_INSTALLMENT"> | "SIP_MANDATE";
@@ -335,10 +336,13 @@ export function FundSearch({
                   className="grid w-full gap-3 border-b border-[var(--line)] px-4 py-3 text-left transition last:border-b-0 hover:bg-[var(--row-hover)] md:grid-cols-[1fr_auto]"
                   onClick={() => openPanel(asset)}
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-[var(--foreground)]">{asset.name}</span>
-                    <span className="text-xs text-[var(--muted)]">{asset.symbol ?? asset.schemeCode ?? asset.exchange}</span>
-                  </span>
+                  <InvestmentIdentity
+                    name={asset.name}
+                    type={asset.type}
+                    symbol={asset.symbol}
+                    amc={asset.amc}
+                    subtitle={asset.symbol ?? asset.schemeCode ?? asset.exchange}
+                  />
                   <Badge variant="muted">{assetTypeLabel(asset.type)}</Badge>
                 </button>
               ))}
@@ -438,15 +442,24 @@ function InvestmentActionPanel({
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-[1120px] flex-col overflow-y-auto border-l border-[var(--line)] bg-[var(--background)] shadow-xl animate-slide-in">
         <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--panel)]/95 px-5 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap gap-2">
-                <Badge>{assetTypeLabel(selected.type)}</Badge>
-                <Badge variant="muted">{selected.symbol ?? selected.schemeCode}</Badge>
+            <div className="flex min-w-0 items-start gap-3">
+              <InvestmentIcon
+                name={detail?.name ?? selected.name}
+                type={selected.type}
+                symbol={selected.symbol}
+                amc={detail?.amc ?? selected.amc}
+                size="lg"
+              />
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap gap-2">
+                  <Badge>{assetTypeLabel(selected.type)}</Badge>
+                  <Badge variant="muted">{selected.symbol ?? selected.schemeCode}</Badge>
+                </div>
+                <h2 className="truncate text-2xl font-semibold text-[var(--foreground)]">{detail?.name ?? selected.name}</h2>
+                <p className="mt-1 truncate text-sm text-[var(--muted)]">
+                  {detail?.category ?? detail?.exchange ?? selected.category ?? selected.amc ?? "Live chart and transaction actions"}
+                </p>
               </div>
-              <h2 className="truncate text-2xl font-semibold text-[var(--foreground)]">{detail?.name ?? selected.name}</h2>
-              <p className="mt-1 truncate text-sm text-[var(--muted)]">
-                {detail?.category ?? detail?.exchange ?? selected.category ?? selected.amc ?? "Live chart and transaction actions"}
-              </p>
             </div>
             <Button type="button" variant="secondary" size="icon" aria-label="Close" onClick={onClose}>
               <X className="h-4 w-4" aria-hidden />
