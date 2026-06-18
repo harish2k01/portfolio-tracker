@@ -342,16 +342,111 @@ export function AuthForm({ mode, usersExist, signupEnabled }: AuthFormProps) {
 
 function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <main className="theme-light flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-      {children}
+    <main className="theme-light min-h-screen bg-[var(--background)] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-80px)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.78fr)]">
+        <section className="order-2 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-6 shadow-sm sm:p-8 lg:order-1">
+          <div className="flex items-center gap-3">
+            <BrandMark compact />
+            <div>
+              <p className="text-lg font-semibold text-[var(--foreground)]">Portfolio Tracker</p>
+              <p className="text-sm text-[var(--muted)]">Track investments, SIPs, holdings, and returns in one place.</p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <PreviewStat label="Portfolio value" value="₹5.2L" />
+            <PreviewStat label="Monthly SIPs" value="₹42K" />
+            <PreviewStat label="XIRR" value="9.4%" tone="positive" />
+          </div>
+
+          <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--foreground)]">Portfolio trend</p>
+                <p className="text-xs text-[var(--muted)]">A simple preview of the dashboard experience.</p>
+              </div>
+              <span className="rounded-full bg-[var(--positive-soft)] px-3 py-1 text-xs font-semibold text-[var(--positive)]">
+                +2.5%
+              </span>
+            </div>
+            <PreviewChart />
+          </div>
+        </section>
+
+        <div className="order-1 flex justify-center lg:order-2">{children}</div>
+      </div>
     </main>
   );
 }
 
-function BrandMark() {
+function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-[#d9dee5]">
-      <Image src="/logo.svg" alt="" width={48} height={48} priority />
+    <div
+      className={
+        compact
+          ? "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-[#d9dee5]"
+          : "mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-[#d9dee5]"
+      }
+    >
+      <Image src="/logo.svg" alt="" width={compact ? 44 : 48} height={compact ? 44 : 48} priority />
+    </div>
+  );
+}
+
+function PreviewStat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "positive";
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{label}</p>
+      <p className={tone === "positive" ? "mt-3 text-2xl font-semibold text-[var(--positive)]" : "mt-3 text-2xl font-semibold text-[var(--foreground)]"}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function PreviewChart() {
+  return (
+    <div className="h-44" aria-hidden>
+      <svg viewBox="0 0 520 176" className="h-full w-full">
+        <defs>
+          <linearGradient id="authPreviewFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0 154 L40 148 L78 132 L118 136 L154 112 L194 118 L232 84 L272 92 L312 70 L350 78 L390 52 L430 48 L470 32 L520 26 L520 176 L0 176 Z"
+          fill="url(#authPreviewFill)"
+        />
+        <path
+          d="M0 154 L40 148 L78 132 L118 136 L154 112 L194 118 L232 84 L272 92 L312 70 L350 78 L390 52 L430 48 L470 32 L520 26"
+          fill="none"
+          stroke="var(--primary)"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="4"
+        />
+        {[0, 1, 2].map((line) => (
+          <line
+            key={line}
+            x1="0"
+            x2="520"
+            y1={48 + line * 48}
+            y2={48 + line * 48}
+            stroke="var(--line)"
+            strokeDasharray="5 8"
+            strokeWidth="1"
+          />
+        ))}
+      </svg>
     </div>
   );
 }

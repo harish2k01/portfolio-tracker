@@ -386,7 +386,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                   className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <InvestmentIcon name={point.name} type="STOCK" size="md" />
+                    <InvestmentIcon name={point.name} type="STOCK" logoUrl={point.logoUrl} size="md" />
                     <span className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</span>
                   </div>
                   <div className="relative h-9 overflow-hidden rounded-md bg-[var(--panel-soft)]">
@@ -462,7 +462,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                     className="grid gap-3 rounded-md border border-[var(--line)] bg-[var(--panel-soft)] p-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)] md:items-center"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <InvestmentIcon name={point.name} type="STOCK" />
+                      <InvestmentIcon name={point.name} type="STOCK" logoUrl={point.logoUrl} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</p>
                         {point.amount ? (

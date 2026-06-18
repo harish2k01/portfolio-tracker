@@ -10,10 +10,12 @@ export type SerializedAsset = {
   type: AssetType;
   symbol: string | null;
   schemeCode: string | null;
+  isin: string | null;
   exchange: string | null;
   category: string | null;
   amc: string | null;
   identity?: string;
+  logoUrl?: string | null;
   sectorAllocation?: AllocationPoint[];
   marketCapAllocation?: AllocationPoint[];
 };
@@ -27,12 +29,14 @@ export type InvestmentSearchResult = {
   exchange?: string;
   category?: string;
   amc?: string;
+  logoUrl?: string | null;
 };
 
 export type AllocationPoint = {
   name: string;
   value: number;
   amount?: number;
+  logoUrl?: string | null;
 };
 
 export type FundHoldingPoint = {
@@ -40,6 +44,7 @@ export type FundHoldingPoint = {
   weight: number;
   sector?: string;
   instrument?: string;
+  logoUrl?: string | null;
 };
 
 export type HoldingRow = {
@@ -48,6 +53,8 @@ export type HoldingRow = {
   type: AssetType;
   assetClass: "Equity" | "Debt" | "Commodities";
   symbol?: string | null;
+  isin?: string | null;
+  logoUrl?: string | null;
   schemeCode?: string | null;
   category?: string | null;
   investedAmount: number;

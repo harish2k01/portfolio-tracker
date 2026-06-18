@@ -133,6 +133,8 @@ export function HoldingsView({
                     name={holding.name}
                     type={holding.type}
                     symbol={holding.symbol}
+                    isin={holding.isin}
+                    logoUrl={holding.logoUrl}
                     subtitle={`${holding.assetClass} / ${assetTypeLabel(holding.type)}`}
                   />
                   <p className="text-sm font-semibold text-[var(--foreground)] lg:text-right">{holding.quantity.toFixed(3)}</p>

@@ -32,9 +32,12 @@ type InvestmentDetail = {
   name: string;
   value: number | null;
   changePercent: number | null;
+  symbol?: string;
+  isin?: string | null;
   category?: string;
   amc?: string;
   exchange?: string;
+  logoUrl?: string | null;
   history: Array<{ date: string; value: number }>;
 };
 
@@ -267,8 +270,10 @@ export function AssetDetailPanel({
               <InvestmentIcon
                 name={payload?.details.name ?? asset?.name ?? "Loading history"}
                 type={asset?.type}
-                symbol={asset?.symbol}
-                amc={asset?.amc}
+                symbol={payload?.details.symbol ?? asset?.symbol}
+                isin={payload?.details.isin ?? asset?.isin}
+                amc={payload?.details.amc ?? asset?.amc}
+                logoUrl={payload?.details.logoUrl ?? asset?.logoUrl}
                 size="lg"
               />
               <div className="min-w-0">

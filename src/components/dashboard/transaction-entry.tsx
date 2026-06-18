@@ -291,7 +291,9 @@ export function TransactionEntry({
                     name={transaction.asset.name}
                     type={transaction.asset.type}
                     symbol={transaction.asset.symbol}
+                    isin={transaction.asset.isin}
                     amc={transaction.asset.amc}
+                    logoUrl={transaction.asset.logoUrl}
                     subtitle={assetTypeLabel(transaction.asset.type)}
                   />
                   <div>

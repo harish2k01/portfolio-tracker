@@ -3,6 +3,7 @@ import {
   type MarketCapClassification,
 } from "@/lib/amfi-classification";
 import type { AllocationPoint } from "@/lib/allocation-metadata";
+import { logoForHoldingName } from "@/lib/investment-logos";
 
 const GROWW_SEARCH_URL = "https://groww.in/v1/api/search/v1/entity";
 const GROWW_FUND_URL = "https://groww.in/mutual-funds";
@@ -48,7 +49,7 @@ export type GrowwFundPortfolio = {
   name?: string;
   category?: string;
   amc?: string;
-  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
+  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
   assetAllocation?: AllocationPoint[];
   sectorAllocation?: AllocationPoint[];
   marketCapAllocation?: AllocationPoint[];
@@ -197,12 +198,17 @@ async function loadGrowwFundPortfolio(schemeCode: string, schemeName: string) {
     category: category || undefined,
     amc: data.fund_house,
     holdings: holdings
-      .map((holding) => ({
-        name: holding.company_name?.trim() || "Unknown",
-        weight: Number(holding.corpus_per),
-        sector: holding.sector_name?.trim() || undefined,
-        instrument: holding.instrument_name?.trim() || holding.nature_name?.trim() || undefined,
-      })),
+      .map((holding) => {
+        const name = holding.company_name?.trim() || "Unknown";
+
+        return {
+          name,
+          weight: Number(holding.corpus_per),
+          sector: holding.sector_name?.trim() || undefined,
+          instrument: holding.instrument_name?.trim() || holding.nature_name?.trim() || undefined,
+          logoUrl: logoForHoldingName(name),
+        };
+      }),
     assetAllocation: allocations.assetAllocation,
     sectorAllocation: allocations.sectorAllocation,
     marketCapAllocation: allocations.marketCapAllocation,

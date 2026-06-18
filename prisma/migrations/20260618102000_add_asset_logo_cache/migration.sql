@@ -1,0 +1,3 @@
+ALTER TABLE "Asset" ADD COLUMN "logoUrl" TEXT;
+ALTER TABLE "Asset" ADD COLUMN "logoSource" TEXT;
+ALTER TABLE "Asset" ADD COLUMN "logoUpdatedAt" TIMESTAMP(3);

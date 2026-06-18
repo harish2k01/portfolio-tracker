@@ -1,6 +1,7 @@
 export type AllocationPoint = {
   name: string;
   value: number;
+  logoUrl?: string | null;
 };
 
 export type WeightedAllocationInput = {
