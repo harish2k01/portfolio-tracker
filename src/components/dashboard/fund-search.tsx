@@ -47,9 +47,12 @@ type Detail = {
   name: string;
   value: number | null;
   changePercent: number | null;
+  symbol?: string;
+  isin?: string | null;
   category?: string;
   amc?: string;
   exchange?: string;
+  logoUrl?: string | null;
   history: Array<{ date: string; value: number }>;
 };
 
@@ -340,7 +343,9 @@ export function FundSearch({
                     name={asset.name}
                     type={asset.type}
                     symbol={asset.symbol}
+                    isin={asset.isin}
                     amc={asset.amc}
+                    logoUrl={asset.logoUrl}
                     subtitle={asset.symbol ?? asset.schemeCode ?? asset.exchange}
                   />
                   <Badge variant="muted">{assetTypeLabel(asset.type)}</Badge>
@@ -446,8 +451,10 @@ function InvestmentActionPanel({
               <InvestmentIcon
                 name={detail?.name ?? selected.name}
                 type={selected.type}
-                symbol={selected.symbol}
+                symbol={detail?.symbol ?? selected.symbol}
+                isin={detail?.isin ?? selected.isin}
                 amc={detail?.amc ?? selected.amc}
+                logoUrl={detail?.logoUrl ?? selected.logoUrl}
                 size="lg"
               />
               <div className="min-w-0">

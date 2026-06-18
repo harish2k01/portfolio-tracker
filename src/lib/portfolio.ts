@@ -7,6 +7,7 @@ import {
   inferSectorAllocation,
   parseStoredAllocation,
 } from "@/lib/allocation-metadata";
+import { resolveInvestmentLogo } from "@/lib/investment-logos";
 import {
   fetchHistoricalInvestmentPrices,
   fetchInvestmentDetails,
@@ -25,6 +26,7 @@ export type HoldingRow = {
   assetClass: "Equity" | "Debt" | "Commodities";
   symbol?: string | null;
   isin?: string | null;
+  logoUrl?: string | null;
   schemeCode?: string | null;
   category?: string | null;
   investedAmount: number;
@@ -36,7 +38,7 @@ export type HoldingRow = {
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
-  fundHoldings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
+  fundHoldings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
 };
 
 export function formatCurrency(value: number) {
@@ -117,6 +119,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         ),
         symbol: transaction.asset.symbol,
         isin: transaction.asset.isin,
+        logoUrl: resolveInvestmentLogo(transaction.asset).logoUrl,
         schemeCode: transaction.asset.schemeCode,
         category: transaction.asset.category,
         investedAmount: 0,
@@ -570,6 +573,9 @@ export function serializeAsset(asset: {
   exchange: string | null;
   category: string | null;
   amc: string | null;
+  isin: string | null;
+  logoUrl?: string | null;
+  logoSource?: string | null;
   sectorAllocation?: unknown;
   marketCapAllocation?: unknown;
   holdings?: unknown;
@@ -580,10 +586,12 @@ export function serializeAsset(asset: {
     type: asset.type,
     symbol: asset.symbol,
     schemeCode: asset.schemeCode,
+    isin: asset.isin,
     exchange: asset.exchange,
     category: asset.category,
     amc: asset.amc,
     identity: assetIdentity(asset),
+    logoUrl: resolveInvestmentLogo(asset).logoUrl,
     sectorAllocation: parseStoredAllocation(asset.sectorAllocation),
     marketCapAllocation: parseStoredAllocation(asset.marketCapAllocation),
   };
@@ -606,6 +614,7 @@ function parseStoredFundHoldings(value: unknown): HoldingRow["fundHoldings"] {
       weight?: unknown;
       sector?: unknown;
       instrument?: unknown;
+      logoUrl?: unknown;
     };
     const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
     const weight = Number(candidate.weight);
@@ -619,6 +628,7 @@ function parseStoredFundHoldings(value: unknown): HoldingRow["fundHoldings"] {
       weight,
       ...(typeof candidate.sector === "string" ? { sector: candidate.sector } : {}),
       ...(typeof candidate.instrument === "string" ? { instrument: candidate.instrument } : {}),
+      ...(typeof candidate.logoUrl === "string" ? { logoUrl: candidate.logoUrl } : {}),
     });
   }
 
@@ -641,7 +651,7 @@ function allocationBasis(row: Pick<HoldingRow, "currentValue" | "investedAmount"
 }
 
 function stockConcentrationFromHoldings(rows: HoldingRow[]) {
-  const groups = new Map<string, { name: string; amount: number }>();
+  const groups = new Map<string, { name: string; amount: number; logoUrl?: string | null }>();
 
   for (const row of rows) {
     const amount = allocationBasis(row);
@@ -651,7 +661,7 @@ function stockConcentrationFromHoldings(rows: HoldingRow[]) {
     }
 
     if (row.type === "STOCK") {
-      addStockExposure(groups, row.name, amount);
+      addStockExposure(groups, row.name, amount, row.logoUrl);
       continue;
     }
 
@@ -665,7 +675,7 @@ function stockConcentrationFromHoldings(rows: HoldingRow[]) {
     const denominator = totalWeight > 100 ? totalWeight : 100;
 
     for (const holding of stockHoldings) {
-      addStockExposure(groups, holding.name, amount * (holding.weight / denominator));
+      addStockExposure(groups, holding.name, amount * (holding.weight / denominator), holding.logoUrl);
     }
   }
 
@@ -680,12 +690,18 @@ function stockConcentrationFromHoldings(rows: HoldingRow[]) {
       name: point.name,
       amount: Number(point.amount.toFixed(2)),
       value: Number(((point.amount / totalStockExposure) * 100).toFixed(2)),
+      logoUrl: point.logoUrl,
     }))
     .filter((point) => point.value > 0)
     .sort((left, right) => right.value - left.value);
 }
 
-function addStockExposure(groups: Map<string, { name: string; amount: number }>, name: string, amount: number) {
+function addStockExposure(
+  groups: Map<string, { name: string; amount: number; logoUrl?: string | null }>,
+  name: string,
+  amount: number,
+  logoUrl?: string | null,
+) {
   const cleanedName = normalizeStockName(name);
 
   if (!cleanedName || amount <= 0) {
@@ -697,7 +713,12 @@ function addStockExposure(groups: Map<string, { name: string; amount: number }>,
   groups.set(key, {
     name: current?.name ?? cleanedName,
     amount: (current?.amount ?? 0) + amount,
+    logoUrl: current?.logoUrl ?? logoUrl ?? logoForStockExposure(cleanedName),
   });
+}
+
+function logoForStockExposure(name: string) {
+  return resolveInvestmentLogo({ name, type: "STOCK" }).logoUrl;
 }
 
 function isStockUnderlyingHolding(holding: { name: string; instrument?: string }) {
@@ -752,7 +773,7 @@ function classifyAssetClass(
 async function persistAllocationMetadata(
   assetId: string,
   metadata: {
-    holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
+    holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
     sectorAllocation?: Array<{ name: string; value: number }>;
     marketCapAllocation?: Array<{ name: string; value: number }>;
   },

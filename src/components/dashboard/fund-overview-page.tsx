@@ -50,8 +50,10 @@ type InvestmentDetail = {
   exchange?: string;
   schemeCode?: string;
   symbol?: string;
+  isin?: string | null;
+  logoUrl?: string | null;
   history: Array<{ date: string; value: number }>;
-  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
+  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
@@ -183,7 +185,9 @@ export function FundOverviewPage({
                   name={details?.name ?? targetLabel(target)}
                   type={type}
                   symbol={details?.symbol ?? (target.kind === "search" ? target.asset.symbol : undefined)}
+                  isin={details?.isin ?? (target.kind === "search" ? target.asset.isin : undefined)}
                   amc={details?.amc ?? (target.kind === "search" ? target.asset.amc : undefined)}
+                  logoUrl={details?.logoUrl ?? (target.kind === "search" ? target.asset.logoUrl : undefined)}
                   size="lg"
                   className="mb-5"
                 />
@@ -285,7 +289,7 @@ export function FundOverviewPage({
                   className="grid gap-2 border-b border-[var(--line)] px-4 py-4 text-sm last:border-b-0 md:grid-cols-[minmax(240px,1.4fr)_0.9fr_0.9fr_0.55fr] md:items-center"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <InvestmentIcon name={holding.name} type="STOCK" />
+                    <InvestmentIcon name={holding.name} type="STOCK" logoUrl={holding.logoUrl} />
                     <p className="truncate font-semibold text-[var(--foreground)]">{holding.name}</p>
                   </div>
                   <p className="text-[var(--muted)] md:text-[var(--foreground)]">{holding.sector ?? "Unspecified"}</p>

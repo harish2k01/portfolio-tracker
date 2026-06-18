@@ -37,6 +37,9 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      LOGO_PROVIDER: ${LOGO_PROVIDER:-logo_dev}
+      LOGO_DEV_TOKEN: ${LOGO_DEV_TOKEN:-}
+      BRANDFETCH_CLIENT_ID: ${BRANDFETCH_CLIENT_ID:-}
     ports:
       - "${APP_PORT:-3000}:3000"
 

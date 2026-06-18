@@ -44,6 +44,9 @@ export function SipManager({
       activeSips.map((sip) => ({
         id: sip.id,
         name: compactFundName(sip.asset.name),
+        fullName: sip.asset.name,
+        logoUrl: sip.asset.logoUrl,
+        amc: sip.asset.amc,
         amount: monthlyEquivalent(sip.amount, sip.frequency),
       })),
     [activeSips],
@@ -208,7 +211,12 @@ export function SipManager({
                       >
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="flex min-w-0 items-center gap-2">
-                            <InvestmentIcon name={item.name} type="MUTUAL_FUND" />
+                            <InvestmentIcon
+                              name={item.fullName}
+                              type="MUTUAL_FUND"
+                              amc={item.amc}
+                              logoUrl={item.logoUrl}
+                            />
                             <span className="min-w-0 truncate font-semibold text-[var(--foreground)]">{item.name}</span>
                           </span>
                           <span className="shrink-0 font-semibold text-[var(--foreground)]">{percentage.toFixed(0)}%</span>
@@ -321,7 +329,9 @@ export function SipManager({
                       name={sip.asset.name}
                       type={sip.asset.type}
                       symbol={sip.asset.symbol}
+                      isin={sip.asset.isin}
                       amc={sip.asset.amc}
+                      logoUrl={sip.asset.logoUrl}
                     />
                     <div className="min-w-0">
                       <h4 className="truncate text-sm font-semibold text-[var(--foreground)]">{sip.asset.name}</h4>
@@ -412,7 +422,9 @@ export function SipManager({
                   name={editingSip.asset.name}
                   type={editingSip.asset.type}
                   symbol={editingSip.asset.symbol}
+                  isin={editingSip.asset.isin}
                   amc={editingSip.asset.amc}
+                  logoUrl={editingSip.asset.logoUrl}
                 />
                 <p className="truncate text-sm text-[var(--muted)]">{editingSip.asset.name}</p>
               </div>
