@@ -22,6 +22,7 @@ export async function DELETE() {
   await prisma.$transaction([
     prisma.transaction.deleteMany({ where: { userId: user.id } }),
     prisma.sip.deleteMany({ where: { userId: user.id } }),
+    prisma.netWorthAsset.deleteMany({ where: { userId: user.id } }),
     prisma.portfolio.deleteMany({ where: { userId: user.id } }),
   ]);
 

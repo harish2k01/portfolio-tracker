@@ -22,10 +22,10 @@ type AdminUser = {
 };
 
 export function AdminSettings({
-  onResetPortfolio,
+  onResetData,
   isResetting,
 }: {
-  onResetPortfolio: () => void;
+  onResetData: () => void;
   isResetting: boolean;
 }) {
   const [signupEnabled, setSignupEnabled] = useState(false);
@@ -221,9 +221,11 @@ export function AdminSettings({
         <CardHeader>
           <div className="flex items-center gap-2">
             <Trash2 className="h-5 w-5 text-[var(--negative)]" />
-            <CardTitle>Portfolio Data</CardTitle>
+            <CardTitle>Net Worth Data</CardTitle>
           </div>
-          <CardDescription>Remove all transactions, SIPs, holdings, and portfolio history for your account.</CardDescription>
+          <CardDescription>
+            Remove all transactions, SIPs, holdings, tracked accounts, assets, and value history for your account.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 rounded-lg border border-[var(--negative)]/25 bg-[var(--negative-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -231,9 +233,9 @@ export function AdminSettings({
               <p className="text-sm font-semibold text-[var(--foreground)]">Start from scratch</p>
               <p className="mt-1 text-sm text-[var(--muted)]">Your login and user account remain active.</p>
             </div>
-            <Button type="button" variant="danger" disabled={isResetting} onClick={onResetPortfolio}>
+            <Button type="button" variant="danger" disabled={isResetting} onClick={onResetData}>
               <Trash2 className="h-4 w-4" aria-hidden />
-              Reset portfolio data
+              Reset net-worth data
             </Button>
           </div>
         </CardContent>

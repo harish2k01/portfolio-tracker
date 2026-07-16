@@ -1,6 +1,5 @@
 import type { Asset, AssetType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { logoCachePatch } from "@/lib/investment-logos";
 import { resolveMutualFundScheme, type InvestmentSearchResult } from "@/lib/market-data";
 
 export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset> {
@@ -17,7 +16,6 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
         isin: input.isin,
         amc: input.amc,
         category: input.category,
-        ...logoCachePatch(input),
       },
       create: {
         name: input.name,
@@ -26,7 +24,6 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
         isin: input.isin,
         amc: input.amc,
         category: input.category,
-        ...logoCachePatch(input),
       },
     });
   }
@@ -43,7 +40,6 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
       isin: input.isin,
       exchange: input.exchange,
       category: input.category,
-      ...logoCachePatch(input),
     },
     create: {
       name: input.name,
@@ -52,7 +48,6 @@ export async function upsertAsset(input: InvestmentSearchResult): Promise<Asset>
       isin: input.isin,
       exchange: input.exchange,
       category: input.category,
-      ...logoCachePatch(input),
     },
   });
 }
@@ -106,10 +101,6 @@ export async function resolveAssetSchemeCode(asset: Asset) {
           name: resolved.name,
           category: resolved.category,
           amc: resolved.amc,
-          ...logoCachePatch({
-            ...resolved,
-            type: "MUTUAL_FUND",
-          }),
         },
       });
     } catch {

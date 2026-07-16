@@ -12,7 +12,6 @@ import {
   serializeTransaction,
 } from "@/lib/portfolio";
 import { fetchInvestmentDetails } from "@/lib/market-data";
-import { resolveInvestmentLogo } from "@/lib/investment-logos";
 import { getCurrentUser } from "@/lib/session";
 import type { ChartRange } from "@/types/portfolio";
 
@@ -85,7 +84,6 @@ async function safeFetchDetails(asset: Asset, range: ChartRange) {
       category: asset.category ?? undefined,
       amc: asset.amc ?? undefined,
       isin: asset.isin,
-      logoUrl: resolveInvestmentLogo(asset).logoUrl,
       value: Number(asset.price ?? asset.nav ?? 0) || null,
       changePercent: null,
       history: [],

@@ -348,22 +348,24 @@ function AuthShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3">
             <BrandMark compact />
             <div>
-              <p className="text-lg font-semibold text-[var(--foreground)]">Portfolio Tracker</p>
-              <p className="text-sm text-[var(--muted)]">Track investments, SIPs, holdings, and returns in one place.</p>
+              <p className="text-lg font-semibold text-[var(--foreground)]">Net Worth Tracker</p>
+              <p className="text-sm text-[var(--muted)]">
+                Track investments, accounts, deposits, retirement savings, gold, and total net worth.
+              </p>
             </div>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <PreviewStat label="Portfolio value" value="₹5.2L" />
-            <PreviewStat label="Monthly SIPs" value="₹42K" />
-            <PreviewStat label="XIRR" value="9.4%" tone="positive" />
+            <PreviewStat label="Total net worth" value="₹8.4L" />
+            <PreviewStat label="Investments" value="₹5.2L" />
+            <PreviewStat label="Cash & deposits" value="₹3.2L" />
           </div>
 
           <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">Portfolio trend</p>
-                <p className="text-xs text-[var(--muted)]">A simple preview of the dashboard experience.</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">Net worth trend</p>
+                <p className="text-xs text-[var(--muted)]">A consolidated view across every tracked asset.</p>
               </div>
               <span className="rounded-full bg-[var(--positive-soft)] px-3 py-1 text-xs font-semibold text-[var(--positive)]">
                 +2.5%

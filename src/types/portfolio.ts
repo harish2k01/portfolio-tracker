@@ -3,6 +3,14 @@ export type SipFrequency = "WEEKLY" | "MONTHLY" | "QUARTERLY";
 export type SipStatus = "ACTIVE" | "PAUSED";
 export type TransactionType = "BUY" | "SELL" | "SIP_INSTALLMENT" | "LUMPSUM";
 export type ChartRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL";
+export type NetWorthAssetType =
+  | "BANK_ACCOUNT"
+  | "FIXED_DEPOSIT"
+  | "EPF"
+  | "GOLD"
+  | "PPF"
+  | "NPS"
+  | "OTHER";
 
 export type SerializedAsset = {
   id: string;
@@ -15,7 +23,6 @@ export type SerializedAsset = {
   category: string | null;
   amc: string | null;
   identity?: string;
-  logoUrl?: string | null;
   sectorAllocation?: AllocationPoint[];
   marketCapAllocation?: AllocationPoint[];
 };
@@ -29,14 +36,12 @@ export type InvestmentSearchResult = {
   exchange?: string;
   category?: string;
   amc?: string;
-  logoUrl?: string | null;
 };
 
 export type AllocationPoint = {
   name: string;
   value: number;
   amount?: number;
-  logoUrl?: string | null;
 };
 
 export type FundHoldingPoint = {
@@ -44,7 +49,6 @@ export type FundHoldingPoint = {
   weight: number;
   sector?: string;
   instrument?: string;
-  logoUrl?: string | null;
 };
 
 export type HoldingRow = {
@@ -54,7 +58,6 @@ export type HoldingRow = {
   assetClass: "Equity" | "Debt" | "Commodities";
   symbol?: string | null;
   isin?: string | null;
-  logoUrl?: string | null;
   schemeCode?: string | null;
   category?: string | null;
   investedAmount: number;
@@ -95,10 +98,35 @@ export type PortfolioTimelinePoint = {
   date: string;
   invested: number;
   current: number;
+  investments?: number;
+  otherAssets?: number;
+};
+
+export type NetWorthAssetRow = {
+  id: string;
+  name: string;
+  type: NetWorthAssetType;
+  institution: string | null;
+  currentValue: number;
+  investedAmount: number | null;
+  accountReference: string | null;
+  interestRate: number | null;
+  maturityDate: string | null;
+  quantity: number | null;
+  unitPrice: number | null;
+  notes: string | null;
+  asOfDate: string;
 };
 
 export type PortfolioDashboard = {
   summary: {
+    totalNetWorth: number;
+    netWorthCostBasis: number;
+    netWorthGain: number;
+    netWorthGainPercent: number;
+    investmentValue: number;
+    otherAssetsValue: number;
+    manualAssetCount: number;
     totalValue: number;
     investedAmount: number;
     gains: number;
@@ -109,6 +137,7 @@ export type PortfolioDashboard = {
     holdingsCount: number;
   };
   holdings: HoldingRow[];
+  netWorthAssets: NetWorthAssetRow[];
   sips: SipRow[];
   timeline: PortfolioTimelinePoint[];
   allocations: {
@@ -116,5 +145,6 @@ export type PortfolioDashboard = {
     sectors: AllocationPoint[];
     marketCap: AllocationPoint[];
     stockConcentration: AllocationPoint[];
+    netWorth: AllocationPoint[];
   };
 };

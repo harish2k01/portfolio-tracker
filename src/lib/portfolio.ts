@@ -7,13 +7,14 @@ import {
   inferSectorAllocation,
   parseStoredAllocation,
 } from "@/lib/allocation-metadata";
-import { resolveInvestmentLogo } from "@/lib/investment-logos";
 import {
   fetchHistoricalInvestmentPrices,
   fetchInvestmentDetails,
   resolveMutualFundScheme,
   type DatedPricePoint,
 } from "@/lib/market-data";
+import { buildNetWorthAllocation, mergeNetWorthTimeline } from "@/lib/net-worth-calculations";
+import { getNetWorthAssets, getNetWorthTimeline } from "@/lib/net-worth";
 import {
   calculateStampDuty as calculateClientStampDuty,
   calculateUnits as calculateClientUnits,
@@ -26,7 +27,6 @@ export type HoldingRow = {
   assetClass: "Equity" | "Debt" | "Commodities";
   symbol?: string | null;
   isin?: string | null;
-  logoUrl?: string | null;
   schemeCode?: string | null;
   category?: string | null;
   investedAmount: number;
@@ -38,7 +38,7 @@ export type HoldingRow = {
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
-  fundHoldings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
+  fundHoldings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
 };
 
 export function formatCurrency(value: number) {
@@ -119,7 +119,6 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
         ),
         symbol: transaction.asset.symbol,
         isin: transaction.asset.isin,
-        logoUrl: resolveInvestmentLogo(transaction.asset).logoUrl,
         schemeCode: transaction.asset.schemeCode,
         category: transaction.asset.category,
         investedAmount: 0,
@@ -246,7 +245,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
 }
 
 export async function getDashboard(userId: string) {
-  const [holdings, sips, timeline, realizedGain] = await Promise.all([
+  const [holdings, sips, investmentTimeline, realizedGain, netWorthAssets, netWorthTimeline] = await Promise.all([
     getUserHoldings(userId),
     prisma.sip.findMany({
       where: { userId },
@@ -255,11 +254,21 @@ export async function getDashboard(userId: string) {
     }),
     getPortfolioTimeline(userId),
     getRealizedGain(userId),
+    getNetWorthAssets(userId),
+    getNetWorthTimeline(userId),
   ]);
 
   const investedAmount = holdings.reduce((sum, row) => sum + row.investedAmount, 0);
   const totalValue = holdings.reduce((sum, row) => sum + row.currentValue, 0);
   const gains = totalValue - investedAmount;
+  const otherAssetsValue = netWorthAssets.reduce((sum, asset) => sum + asset.currentValue, 0);
+  const otherAssetsCostBasis = netWorthAssets.reduce(
+    (sum, asset) => sum + (asset.investedAmount ?? asset.currentValue),
+    0,
+  );
+  const totalNetWorth = totalValue + otherAssetsValue;
+  const netWorthCostBasis = investedAmount + otherAssetsCostBasis;
+  const netWorthGain = totalNetWorth - netWorthCostBasis;
   const monthlySipTotal = sips
     .filter((sip) => sip.status === "ACTIVE")
     .reduce((sum, sip) => sum + monthlyEquivalent(Number(sip.amount), sip.frequency), 0);
@@ -270,6 +279,13 @@ export async function getDashboard(userId: string) {
 
   return {
     summary: {
+      totalNetWorth,
+      netWorthCostBasis,
+      netWorthGain,
+      netWorthGainPercent: netWorthCostBasis ? (netWorthGain / netWorthCostBasis) * 100 : 0,
+      investmentValue: totalValue,
+      otherAssetsValue,
+      manualAssetCount: netWorthAssets.length,
       totalValue,
       investedAmount,
       gains,
@@ -280,6 +296,7 @@ export async function getDashboard(userId: string) {
       holdingsCount: holdings.length,
     },
     holdings,
+    netWorthAssets,
     sips: sips.map((sip) => ({
       id: sip.id,
       amount: Number(sip.amount),
@@ -289,12 +306,16 @@ export async function getDashboard(userId: string) {
       status: sip.status,
       asset: serializeAsset(sip.asset),
     })),
-    timeline: withCurrentTimelinePoint(timeline, investedAmount, totalValue),
+    timeline: mergeNetWorthTimeline(
+      withCurrentTimelinePoint(investmentTimeline, investedAmount, totalValue),
+      netWorthTimeline,
+    ),
     allocations: {
       assets: assetAllocation,
       sectors: sectorAllocation,
       marketCap: marketCapSplit,
       stockConcentration,
+      netWorth: buildNetWorthAllocation(holdings, netWorthAssets),
     },
   };
 }
@@ -574,8 +595,6 @@ export function serializeAsset(asset: {
   category: string | null;
   amc: string | null;
   isin: string | null;
-  logoUrl?: string | null;
-  logoSource?: string | null;
   sectorAllocation?: unknown;
   marketCapAllocation?: unknown;
   holdings?: unknown;
@@ -591,7 +610,6 @@ export function serializeAsset(asset: {
     category: asset.category,
     amc: asset.amc,
     identity: assetIdentity(asset),
-    logoUrl: resolveInvestmentLogo(asset).logoUrl,
     sectorAllocation: parseStoredAllocation(asset.sectorAllocation),
     marketCapAllocation: parseStoredAllocation(asset.marketCapAllocation),
   };
@@ -614,7 +632,6 @@ function parseStoredFundHoldings(value: unknown): HoldingRow["fundHoldings"] {
       weight?: unknown;
       sector?: unknown;
       instrument?: unknown;
-      logoUrl?: unknown;
     };
     const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
     const weight = Number(candidate.weight);
@@ -628,7 +645,6 @@ function parseStoredFundHoldings(value: unknown): HoldingRow["fundHoldings"] {
       weight,
       ...(typeof candidate.sector === "string" ? { sector: candidate.sector } : {}),
       ...(typeof candidate.instrument === "string" ? { instrument: candidate.instrument } : {}),
-      ...(typeof candidate.logoUrl === "string" ? { logoUrl: candidate.logoUrl } : {}),
     });
   }
 
@@ -651,7 +667,7 @@ function allocationBasis(row: Pick<HoldingRow, "currentValue" | "investedAmount"
 }
 
 function stockConcentrationFromHoldings(rows: HoldingRow[]) {
-  const groups = new Map<string, { name: string; amount: number; logoUrl?: string | null }>();
+  const groups = new Map<string, { name: string; amount: number }>();
 
   for (const row of rows) {
     const amount = allocationBasis(row);
@@ -661,7 +677,7 @@ function stockConcentrationFromHoldings(rows: HoldingRow[]) {
     }
 
     if (row.type === "STOCK") {
-      addStockExposure(groups, row.name, amount, row.logoUrl);
+      addStockExposure(groups, row.name, amount);
       continue;
     }
 
@@ -675,7 +691,7 @@ function stockConcentrationFromHoldings(rows: HoldingRow[]) {
     const denominator = totalWeight > 100 ? totalWeight : 100;
 
     for (const holding of stockHoldings) {
-      addStockExposure(groups, holding.name, amount * (holding.weight / denominator), holding.logoUrl);
+      addStockExposure(groups, holding.name, amount * (holding.weight / denominator));
     }
   }
 
@@ -690,17 +706,15 @@ function stockConcentrationFromHoldings(rows: HoldingRow[]) {
       name: point.name,
       amount: Number(point.amount.toFixed(2)),
       value: Number(((point.amount / totalStockExposure) * 100).toFixed(2)),
-      logoUrl: point.logoUrl,
     }))
     .filter((point) => point.value > 0)
     .sort((left, right) => right.value - left.value);
 }
 
 function addStockExposure(
-  groups: Map<string, { name: string; amount: number; logoUrl?: string | null }>,
+  groups: Map<string, { name: string; amount: number }>,
   name: string,
   amount: number,
-  logoUrl?: string | null,
 ) {
   const cleanedName = normalizeStockName(name);
 
@@ -713,12 +727,7 @@ function addStockExposure(
   groups.set(key, {
     name: current?.name ?? cleanedName,
     amount: (current?.amount ?? 0) + amount,
-    logoUrl: current?.logoUrl ?? logoUrl ?? logoForStockExposure(cleanedName),
   });
-}
-
-function logoForStockExposure(name: string) {
-  return resolveInvestmentLogo({ name, type: "STOCK" }).logoUrl;
 }
 
 function isStockUnderlyingHolding(holding: { name: string; instrument?: string }) {
@@ -773,7 +782,7 @@ function classifyAssetClass(
 async function persistAllocationMetadata(
   assetId: string,
   metadata: {
-    holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
+    holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
     sectorAllocation?: Array<{ name: string; value: number }>;
     marketCapAllocation?: Array<{ name: string; value: number }>;
   },

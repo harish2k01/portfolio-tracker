@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { InvestmentIdentity } from "@/components/ui/investment-icon";
+import { InvestmentIdentity } from "@/components/ui/investment-identity";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 
 type ImportSummary = {
@@ -289,11 +289,6 @@ export function TransactionEntry({
                   <p className="text-sm font-semibold text-[var(--foreground)]">{transaction.tradeDate}</p>
                   <InvestmentIdentity
                     name={transaction.asset.name}
-                    type={transaction.asset.type}
-                    symbol={transaction.asset.symbol}
-                    isin={transaction.asset.isin}
-                    amc={transaction.asset.amc}
-                    logoUrl={transaction.asset.logoUrl}
                     subtitle={assetTypeLabel(transaction.asset.type)}
                   />
                   <div>
@@ -411,7 +406,6 @@ export function TransactionEntry({
                   />
                   <InvestmentIdentity
                     name={suggestion.assetName}
-                    type="MUTUAL_FUND"
                     subtitle={`${suggestion.referenceTransactions.length} transactions in latest month`}
                     titleClassName="font-semibold"
                   />

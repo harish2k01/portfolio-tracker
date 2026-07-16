@@ -47,11 +47,11 @@ export async function sendTemporaryPasswordEmail({
 
   await sendMail({
     to: email,
-    subject: "Your Portfolio Tracker temporary password",
+    subject: "Your Net Worth Tracker temporary password",
     text: [
       `Hi ${displayName},`,
       "",
-      "Your temporary Portfolio Tracker password is:",
+      "Your temporary Net Worth Tracker password is:",
       temporaryPassword,
       "",
       "Open the login page, enter your email, then use this temporary password to set a new password.",

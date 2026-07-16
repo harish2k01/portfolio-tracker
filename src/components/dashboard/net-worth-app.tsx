@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   BarChart3,
   CalendarClock,
+  Landmark,
   LogOut,
   Menu,
   Moon,
@@ -25,6 +26,7 @@ import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { FundOverviewPage, type FundOverviewTarget } from "@/components/dashboard/fund-overview-page";
 import { FundSearch } from "@/components/dashboard/fund-search";
 import { HoldingsView } from "@/components/dashboard/holdings-view";
+import { NetWorthAssets } from "@/components/dashboard/net-worth-assets";
 import { SipManager } from "@/components/dashboard/sip-manager";
 import { TransactionEntry } from "@/components/dashboard/transaction-entry";
 import { Button } from "@/components/ui/button";
@@ -40,19 +42,20 @@ type AppUser = {
   isActive: boolean;
 };
 
-type Section = "dashboard" | "holdings" | "sips" | "transactions" | "search" | "admin";
+type Section = "dashboard" | "assets" | "holdings" | "sips" | "transactions" | "search" | "admin";
 type DetailTarget = { kind: "asset"; id: string } | { kind: "sip"; id: string };
 type Theme = "dark" | "light";
 
 const baseSections = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+  { id: "assets", label: "Assets & accounts", icon: Landmark },
   { id: "holdings", label: "Holdings", icon: WalletCards },
   { id: "sips", label: "SIPs", icon: CalendarClock },
   { id: "transactions", label: "Transactions", icon: WalletCards },
   { id: "search", label: "Search", icon: Search },
 ] satisfies Array<{ id: Section; label: string; icon: typeof BarChart3 }>;
 
-export function PortfolioApp({ user }: { user: AppUser }) {
+export function NetWorthApp({ user }: { user: AppUser }) {
   const [activeSection, setActiveSection] = useState<Section>("dashboard");
   const [theme, setTheme] = useState<Theme>("light");
   const [dashboard, setDashboard] = useState<PortfolioDashboard | null>(null);
@@ -79,13 +82,13 @@ export function PortfolioApp({ user }: { user: AppUser }) {
       const response = await fetch("/api/portfolio", { cache: "no-store" });
 
       if (!response.ok) {
-        setError("Unable to load portfolio data.");
+        setError("Unable to load net-worth data.");
         return;
       }
 
       setDashboard(await response.json());
     } catch {
-      setError("Unable to load portfolio data.");
+      setError("Unable to load net-worth data.");
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +142,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
     });
   }
 
-  async function resetPortfolio() {
+  async function resetNetWorthData() {
     setIsResetting(true);
     setError("");
 
@@ -147,7 +150,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
       const response = await fetch("/api/portfolio", { method: "DELETE" });
 
       if (!response.ok) {
-        throw new Error("Unable to reset portfolio data.");
+        throw new Error("Unable to reset net-worth data.");
       }
 
       setDetailTarget(null);
@@ -156,7 +159,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
       setResetOpen(false);
       await refreshDashboard();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to reset portfolio data.");
+      setError(caught instanceof Error ? caught.message : "Unable to reset net-worth data.");
     } finally {
       setIsResetting(false);
     }
@@ -211,7 +214,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
             >
               <Image src="/logo.svg" alt="" width={38} height={38} className="shrink-0 rounded-full" priority />
               <span className={cn("sidebar-primary truncate text-base font-semibold", sidebarCollapsed && "lg:hidden")}>
-                Portfolio Tracker
+                Net Worth Tracker
               </span>
             </button>
             <Button
@@ -306,7 +309,7 @@ export function PortfolioApp({ user }: { user: AppUser }) {
               aria-label="Go to dashboard"
             >
               <Image src="/logo.svg" alt="" width={34} height={34} className="shrink-0 rounded-full" priority />
-              <span className="truncate text-sm font-semibold text-white">Portfolio Tracker</span>
+              <span className="truncate text-sm font-semibold text-white">Net Worth Tracker</span>
             </button>
             <Button
               type="button"
@@ -346,9 +349,12 @@ export function PortfolioApp({ user }: { user: AppUser }) {
             ) : activeSection === "dashboard" ? (
               <DashboardOverview
                 dashboard={dashboard}
-                onOpenTransactions={() => switchSection("search")}
                 onOpenHoldings={openHoldings}
+                onOpenAssets={() => switchSection("assets")}
               />
+            ) : null}
+            {!detailTarget && !fundTarget && activeSection === "assets" ? (
+              <NetWorthAssets assets={dashboard?.netWorthAssets ?? []} onChanged={refreshDashboard} />
             ) : null}
             {!detailTarget && !fundTarget && activeSection === "holdings" ? (
               <HoldingsView
@@ -380,19 +386,19 @@ export function PortfolioApp({ user }: { user: AppUser }) {
               />
             ) : null}
             {!detailTarget && !fundTarget && activeSection === "admin" && user.role === "ADMIN" ? (
-              <AdminSettings onResetPortfolio={() => setResetOpen(true)} isResetting={isResetting} />
+              <AdminSettings onResetData={() => setResetOpen(true)} isResetting={isResetting} />
             ) : null}
           </div>
         </div>
       </div>
       <ConfirmDialog
         open={resetOpen}
-        title="Reset all portfolio data?"
-        description="This permanently deletes your transactions, SIPs, holdings, and portfolio history. Your account will remain active."
-        confirmLabel="Reset portfolio"
+        title="Reset all net-worth data?"
+        description="This permanently deletes your transactions, SIPs, holdings, tracked accounts, assets, and value history. Your account will remain active."
+        confirmLabel="Reset net-worth data"
         tone="danger"
         isBusy={isResetting}
-        onConfirm={() => void resetPortfolio()}
+        onConfirm={() => void resetNetWorthData()}
         onClose={() => setResetOpen(false)}
       />
     </main>

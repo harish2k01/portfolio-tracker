@@ -16,7 +16,6 @@ import { assetTypeLabel } from "@/lib/labels";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { cn } from "@/lib/utils";
 
 type FundDetailsProps = {
@@ -28,9 +27,8 @@ type FundDetailsProps = {
     category?: string;
     value: number | null;
     changePercent: number | null;
-    logoUrl?: string | null;
     history: Array<{ date: string; value: number }>;
-    holdings?: Array<{ name: string; weight: number; logoUrl?: string | null }>;
+    holdings?: Array<{ name: string; weight: number }>;
     sectorAllocation?: Array<{ name: string; value: number }>;
     marketCapAllocation?: Array<{ name: string; value: number }>;
   };
@@ -54,7 +52,6 @@ export function FundDetails({ details }: FundDetailsProps) {
           </Link>
           <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-              <InvestmentIcon name={details.name} type="MUTUAL_FUND" amc={details.amc} logoUrl={details.logoUrl} size="lg" />
               <div className="min-w-0">
                 <div className="mb-3 flex flex-wrap gap-2">
                   <Badge>{assetTypeLabel(details.type)}</Badge>
@@ -115,8 +112,7 @@ export function FundDetails({ details }: FundDetailsProps) {
         <div className="grid gap-5 lg:grid-cols-3">
           <ListCard
             title="Holdings"
-            items={details.holdings?.map((item) => ({ name: item.name, value: `${item.weight}%`, logoUrl: item.logoUrl })) ?? []}
-            showInvestmentIcons
+            items={details.holdings?.map((item) => ({ name: item.name, value: `${item.weight}%` })) ?? []}
           />
           <ListCard title="Sector Allocation" items={details.sectorAllocation?.map((item) => `${item.name} - ${item.value}%`) ?? []} />
           <ListCard title="Market Cap Allocation" items={details.marketCapAllocation?.map((item) => `${item.name} - ${item.value}%`) ?? []} />
@@ -129,11 +125,9 @@ export function FundDetails({ details }: FundDetailsProps) {
 function ListCard({
   title,
   items,
-  showInvestmentIcons = false,
 }: {
   title: string;
-  items: Array<string | { name: string; value: string; logoUrl?: string | null }>;
-  showInvestmentIcons?: boolean;
+  items: Array<string | { name: string; value: string }>;
 }) {
   return (
     <Card className="glass-panel">
@@ -147,15 +141,7 @@ function ListCard({
 
             return (
               <div key={key} className="rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 text-sm text-[var(--foreground)]">
-                {showInvestmentIcons && typeof item !== "string" ? (
-                  <span className="flex min-w-0 items-center gap-3">
-                    <InvestmentIcon name={item.name} type="STOCK" logoUrl={item.logoUrl} />
-                    <span className="min-w-0 truncate font-semibold">{item.name}</span>
-                    <span className="ml-auto shrink-0 text-[var(--muted)]">{item.value}</span>
-                  </span>
-                ) : (
-                  <span>{typeof item === "string" ? item : `${item.name} - ${item.value}`}</span>
-                )}
+                <span>{typeof item === "string" ? item : `${item.name} - ${item.value}`}</span>
               </div>
             );
           })

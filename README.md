@@ -1,6 +1,6 @@
-# Portfolio Tracker
+# Net Worth Tracker
 
-Authenticated India-only portfolio tracker for SIPs, Indian mutual funds, NSE/BSE stocks, India-listed ETFs, allocation analytics, SIP reminders, and watchlist alerts.
+Authenticated personal net-worth tracker with dedicated investment workflows for Indian mutual funds, NSE/BSE stocks, India-listed ETFs, SIPs, and imported trade statements. It also tracks bank balances, fixed deposits, EPF, PPF, NPS, gold, and other manually valued assets in one consolidated dashboard.
 
 ## Stack
 
@@ -64,10 +64,11 @@ The web container applies Prisma migrations automatically before starting Next.j
 
 ## Data Sources
 
-The app does not ship sample portfolio data. It uses real user entries plus live public data:
+The app does not ship sample financial data. It combines user-entered asset snapshots, imported transactions, and live public market data:
 
 - MFAPI/mfdata for Indian mutual fund search, NAV, and metadata where available
 - Yahoo Finance chart/search endpoints for NSE/BSE stocks and India-listed ETFs
+- Dated user snapshots for bank accounts, fixed deposits, retirement savings, gold, and other assets
 
 If a provider does not return data, the UI shows an unavailable state instead of fake fallback values.
 

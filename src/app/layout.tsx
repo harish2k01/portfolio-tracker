@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mutual Funds",
-  description: "SIP, mutual fund, ETF, and stock portfolio tracker.",
+  title: "Net Worth Tracker",
+  description: "Track investments, accounts, deposits, retirement savings, gold, and total net worth.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

@@ -38,7 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { InvestmentIcon, InvestmentIdentity } from "@/components/ui/investment-icon";
+import { InvestmentIdentity } from "@/components/ui/investment-identity";
 import { Label } from "@/components/ui/label";
 
 type ActionMode = Exclude<TransactionType, "SIP_INSTALLMENT"> | "SIP_MANDATE";
@@ -52,7 +52,6 @@ type Detail = {
   category?: string;
   amc?: string;
   exchange?: string;
-  logoUrl?: string | null;
   history: Array<{ date: string; value: number }>;
 };
 
@@ -341,11 +340,6 @@ export function FundSearch({
                 >
                   <InvestmentIdentity
                     name={asset.name}
-                    type={asset.type}
-                    symbol={asset.symbol}
-                    isin={asset.isin}
-                    amc={asset.amc}
-                    logoUrl={asset.logoUrl}
                     subtitle={asset.symbol ?? asset.schemeCode ?? asset.exchange}
                   />
                   <Badge variant="muted">{assetTypeLabel(asset.type)}</Badge>
@@ -448,15 +442,6 @@ function InvestmentActionPanel({
         <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--panel)]/95 px-5 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
-              <InvestmentIcon
-                name={detail?.name ?? selected.name}
-                type={selected.type}
-                symbol={detail?.symbol ?? selected.symbol}
-                isin={detail?.isin ?? selected.isin}
-                amc={detail?.amc ?? selected.amc}
-                logoUrl={detail?.logoUrl ?? selected.logoUrl}
-                size="lg"
-              />
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap gap-2">
                   <Badge>{assetTypeLabel(selected.type)}</Badge>

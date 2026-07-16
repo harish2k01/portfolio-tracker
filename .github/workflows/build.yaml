@@ -42,4 +42,4 @@ jobs:
           tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.pull_request.number }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.description=Self-hosted portfolio tracker
+            org.opencontainers.image.description=Self-hosted net worth tracker

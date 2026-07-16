@@ -246,10 +246,10 @@ jobs:
           tags: ${{ steps.tags.outputs.tags }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.description=Self-hosted portfolio tracker
+            org.opencontainers.image.description=Self-hosted net worth tracker
 
   # update-homelab-ops:
-  #   name: Update homelab-ops Portfolio Tracker Version
+  #   name: Update homelab-ops Net Worth Tracker Version
   #   needs:
   #     - release
   #     - build

@@ -1,7 +1,6 @@
 import type { AssetType } from "@prisma/client";
 import { fetchAmfiMarketCapClassification } from "@/lib/amfi-classification";
 import { fetchGrowwFundPortfolio } from "@/lib/groww-fund-data";
-import { logoForHoldingName, resolveInvestmentLogo } from "@/lib/investment-logos";
 
 export type ChartRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL";
 
@@ -14,7 +13,6 @@ export type InvestmentSearchResult = {
   exchange?: string;
   category?: string;
   amc?: string;
-  logoUrl?: string | null;
 };
 
 export type PricePoint = {
@@ -35,11 +33,10 @@ export type InvestmentQuote = {
   exchange?: string;
   category?: string;
   amc?: string;
-  logoUrl?: string | null;
   value: number | null;
   changePercent: number | null;
   history: PricePoint[];
-  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
+  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
@@ -244,17 +241,12 @@ export async function searchMutualFunds(query: string): Promise<InvestmentSearch
   const data = (await response.json()) as MfSearchResult[];
   const normalized = data
     .map((item) => {
-      const result = {
+      return {
         name: item.schemeName ?? `Scheme ${item.schemeCode}`,
         type: "MUTUAL_FUND" as const,
         schemeCode: item.schemeCode ? String(item.schemeCode) : undefined,
         category: item.schemeCategory,
         amc: item.fundHouse,
-      };
-
-      return {
-        ...result,
-        logoUrl: resolveInvestmentLogo(result).logoUrl,
       };
     })
     .filter((item) => !/\bETF\b|\bBEES\b/i.test(item.name))
@@ -342,17 +334,12 @@ export async function searchStocksAndEtfs(query: string): Promise<InvestmentSear
       .slice(0, 8)
       .map((quote) => {
         const name = quote.longname ?? quote.shortname ?? quote.symbol ?? "Unknown";
-        const result = {
+        return {
           name,
           type: yahooAssetType(quote.quoteType, name),
           symbol: quote.symbol,
           exchange: quote.exchDisp ?? quote.exchange,
           category: quote.quoteType === "ETF" ? "ETF" : "Equity",
-        };
-
-        return {
-          ...result,
-          logoUrl: resolveInvestmentLogo(result).logoUrl,
         };
       }) ?? []
   );
@@ -409,11 +396,10 @@ export async function fetchMutualFundDetails(
 
   return {
     ...detail,
-    logoUrl: resolveInvestmentLogo(detail).logoUrl,
     value: latest,
     changePercent: latest && first ? ((latest - first) / first) * 100 : null,
     history: points,
-    holdings: withHoldingLogos(groww?.holdings ?? enriched?.holdings),
+    holdings: groww?.holdings ?? enriched?.holdings,
     assetAllocation: groww?.assetAllocation,
     sectorAllocation: groww?.sectorAllocation ?? enriched?.sectorAllocation,
     marketCapAllocation: groww?.marketCapAllocation ?? enriched?.marketCapAllocation,
@@ -557,12 +543,6 @@ export async function fetchYahooDetails(
     isin: isin ?? undefined,
     exchange: result?.meta?.exchangeName,
     category: type === "ETF" ? "ETF" : "Equity",
-    logoUrl: resolveInvestmentLogo({
-      name: quoteName,
-      type,
-      symbol,
-      isin,
-    }).logoUrl,
     value: latest,
     changePercent: latest && previous ? ((latest - previous) / previous) * 100 : null,
     history,
@@ -705,7 +685,6 @@ async function fetchMfDataDetails(schemeCode: string) {
         ?.map((holding) => ({
           name: holding.name ?? holding.company ?? "Unknown",
           weight: toNumber(holding.weight ?? holding.percentage) ?? 0,
-          logoUrl: logoForHoldingName(holding.name ?? holding.company ?? "Unknown"),
         }))
         .filter((holding) => holding.weight > 0),
       sectorAllocation: data.sectors
@@ -722,15 +701,6 @@ async function fetchMfDataDetails(schemeCode: string) {
   } catch {
     return null;
   }
-}
-
-function withHoldingLogos(
-  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>,
-) {
-  return holdings?.map((holding) => ({
-    ...holding,
-    logoUrl: holding.logoUrl ?? logoForHoldingName(holding.name),
-  }));
 }
 
 function withFallbackTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T) {

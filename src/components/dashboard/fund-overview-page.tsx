@@ -18,7 +18,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
 import { assetTypeLabel } from "@/lib/labels";
@@ -51,9 +50,8 @@ type InvestmentDetail = {
   schemeCode?: string;
   symbol?: string;
   isin?: string | null;
-  logoUrl?: string | null;
   history: Array<{ date: string; value: number }>;
-  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string; logoUrl?: string | null }>;
+  holdings?: Array<{ name: string; weight: number; sector?: string; instrument?: string }>;
   assetAllocation?: Array<{ name: string; value: number }>;
   sectorAllocation?: Array<{ name: string; value: number }>;
   marketCapAllocation?: Array<{ name: string; value: number }>;
@@ -181,16 +179,6 @@ export function FundOverviewPage({
           <div className="space-y-7">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
-                <InvestmentIcon
-                  name={details?.name ?? targetLabel(target)}
-                  type={type}
-                  symbol={details?.symbol ?? (target.kind === "search" ? target.asset.symbol : undefined)}
-                  isin={details?.isin ?? (target.kind === "search" ? target.asset.isin : undefined)}
-                  amc={details?.amc ?? (target.kind === "search" ? target.asset.amc : undefined)}
-                  logoUrl={details?.logoUrl ?? (target.kind === "search" ? target.asset.logoUrl : undefined)}
-                  size="lg"
-                  className="mb-5"
-                />
                 <h1 className="max-w-4xl text-3xl font-semibold leading-tight text-[var(--foreground)]">
                   {details?.name ?? targetLabel(target)}
                 </h1>
@@ -288,10 +276,7 @@ export function FundOverviewPage({
                   key={`${holding.name}:${holding.weight}`}
                   className="grid gap-2 border-b border-[var(--line)] px-4 py-4 text-sm last:border-b-0 md:grid-cols-[minmax(240px,1.4fr)_0.9fr_0.9fr_0.55fr] md:items-center"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <InvestmentIcon name={holding.name} type="STOCK" logoUrl={holding.logoUrl} />
-                    <p className="truncate font-semibold text-[var(--foreground)]">{holding.name}</p>
-                  </div>
+                  <p className="truncate font-semibold text-[var(--foreground)]">{holding.name}</p>
                   <p className="text-[var(--muted)] md:text-[var(--foreground)]">{holding.sector ?? "Unspecified"}</p>
                   <p className="text-[var(--muted)] md:text-[var(--foreground)]">{holding.instrument ?? "Equity"}</p>
                   <p className="font-semibold text-[var(--foreground)] md:text-right">{holding.weight.toFixed(2)}%</p>

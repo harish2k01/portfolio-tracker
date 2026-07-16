@@ -14,16 +14,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, CalendarClock, IndianRupee, Landmark, PiggyBank, TrendingUp, X } from "lucide-react";
+import { Activity, Building2, IndianRupee, Landmark, PiggyBank, TrendingUp, X } from "lucide-react";
 import { formatCompactCurrency, formatCurrency } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import type { AllocationPoint, HoldingRow, PortfolioDashboard, PortfolioTimelinePoint } from "@/types/portfolio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
 const allocationPalettes = {
+  "Net worth allocation": ["#1277d3", "#20a4c8", "#f0a62a", "#5b4bda", "#0f9f6e", "#8b6f47", "#64748b"],
   "Asset split": ["#1277d3", "#536dfe", "#f0a62a"],
   "Market cap split": ["#5b4bda", "#1277d3", "#20a4c8"],
   "Sector allocation": [
@@ -40,7 +40,7 @@ const allocationPalettes = {
   ],
 } as const;
 const assetClassOrder = ["Equity", "Debt", "Commodities"] as const;
-const portfolioRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
+const netWorthRanges = ["1M", "3M", "6M", "1Y", "ALL"] as const;
 
 const tooltipStyle = {
   background: "var(--panel)",
@@ -72,7 +72,7 @@ function EmptyState({ title, action }: { title: string; action?: () => void }) {
   );
 }
 
-function filteredTimeline(data: PortfolioTimelinePoint[], range: (typeof portfolioRanges)[number]) {
+function filteredTimeline(data: PortfolioTimelinePoint[], range: (typeof netWorthRanges)[number]) {
   if (range === "ALL") {
     return data;
   }
@@ -98,15 +98,15 @@ function formatAxisDate(value: string) {
   });
 }
 
-function PortfolioAnalysis({
+function NetWorthAnalysis({
   dashboard,
-  onOpenTransactions,
+  onOpenAssets,
 }: {
   dashboard: PortfolioDashboard;
-  onOpenTransactions: () => void;
+  onOpenAssets: () => void;
 }) {
   const mounted = useMounted();
-  const [range, setRange] = useState<(typeof portfolioRanges)[number]>("ALL");
+  const [range, setRange] = useState<(typeof netWorthRanges)[number]>("ALL");
   const summary = dashboard.summary;
   const chartData = useMemo(() => {
     const points = filteredTimeline(dashboard.timeline, range);
@@ -122,25 +122,27 @@ function PortfolioAnalysis({
       <CardHeader className="border-b border-[var(--line)] pb-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <CardTitle className="text-3xl">Portfolio</CardTitle>
-            <CardDescription>Current value versus invested amount from your saved entries</CardDescription>
+            <CardTitle className="text-3xl">Net worth</CardTitle>
+            <CardDescription>
+              Investments, bank balances, deposits, retirement savings, gold, and other tracked assets
+            </CardDescription>
           </div>
           <div className="grid grid-cols-2 gap-6 text-left sm:text-right">
             <div>
               <p className="flex items-center gap-2 text-sm text-[var(--muted)] sm:justify-end">
-                Current <span className="h-3 w-3 rounded-sm bg-[var(--primary)]" />
+                Net worth <span className="h-3 w-3 rounded-sm bg-[var(--primary)]" />
               </p>
-              <p className="mt-3 text-3xl font-semibold text-[var(--foreground)]">{formatCurrency(summary.totalValue)}</p>
-              <p className={summary.gains >= 0 ? "mt-2 text-sm font-semibold text-[var(--positive)]" : "mt-2 text-sm font-semibold text-[var(--negative)]"}>
-                {summary.gains >= 0 ? "+" : ""}
-                {formatCurrency(summary.gains)} ({summary.gainsPercent.toFixed(2)}%)
+              <p className="mt-3 text-3xl font-semibold text-[var(--foreground)]">{formatCurrency(summary.totalNetWorth)}</p>
+              <p className={summary.netWorthGain >= 0 ? "mt-2 text-sm font-semibold text-[var(--positive)]" : "mt-2 text-sm font-semibold text-[var(--negative)]"}>
+                {summary.netWorthGain >= 0 ? "+" : ""}
+                {formatCurrency(summary.netWorthGain)} ({summary.netWorthGainPercent.toFixed(2)}%)
               </p>
             </div>
             <div>
               <p className="flex items-center gap-2 text-sm text-[var(--muted)] sm:justify-end">
-                Invested <span className="h-3 w-3 rounded-sm bg-[#98a2b3]" />
+                Cost basis <span className="h-3 w-3 rounded-sm bg-[#98a2b3]" />
               </p>
-              <p className="mt-3 text-3xl font-semibold text-[var(--foreground)]">{formatCurrency(summary.investedAmount)}</p>
+              <p className="mt-3 text-3xl font-semibold text-[var(--foreground)]">{formatCurrency(summary.netWorthCostBasis)}</p>
             </div>
           </div>
         </div>
@@ -174,7 +176,7 @@ function PortfolioAnalysis({
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value, name) => [formatCurrency(Number(value)), name === "current" ? "Current" : "Invested"]}
+                  formatter={(value, name) => [formatCurrency(Number(value)), name === "current" ? "Net worth" : "Cost basis"]}
                 />
                 <Area
                   type="monotone"
@@ -196,10 +198,10 @@ function PortfolioAnalysis({
             </ResponsiveContainer>
           </div>
         ) : (
-          <EmptyState title="Add at least two dated entries to build the portfolio chart." action={onOpenTransactions} />
+          <EmptyState title="Add dated investments or assets to build the net-worth chart." action={onOpenAssets} />
         )}
         <div className="mt-4 flex justify-center gap-2">
-          {portfolioRanges.map((item) => (
+          {netWorthRanges.map((item) => (
             <Button
               key={item}
               type="button"
@@ -385,10 +387,7 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                   key={point.name}
                   className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] md:items-center"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <InvestmentIcon name={point.name} type="STOCK" logoUrl={point.logoUrl} size="md" />
-                    <span className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</span>
-                  </div>
+                  <span className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</span>
                   <div className="relative h-9 overflow-hidden rounded-md bg-[var(--panel-soft)]">
                     <span
                       className="absolute inset-y-0 left-0 rounded-md"
@@ -462,7 +461,6 @@ function StockConcentrationCard({ data }: { data: AllocationPoint[] }) {
                     className="grid gap-3 rounded-md border border-[var(--line)] bg-[var(--panel-soft)] p-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)] md:items-center"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <InvestmentIcon name={point.name} type="STOCK" logoUrl={point.logoUrl} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--foreground)]">{point.name}</p>
                         {point.amount ? (
@@ -553,12 +551,12 @@ function sortAssetClasses(points: AllocationPoint[]) {
 
 export function DashboardOverview({
   dashboard,
-  onOpenTransactions,
   onOpenHoldings,
+  onOpenAssets,
 }: {
   dashboard: PortfolioDashboard | null;
-  onOpenTransactions: () => void;
   onOpenHoldings: (filter?: string) => void;
+  onOpenAssets: () => void;
 }) {
   const summary = dashboard?.summary;
   const holdings = useMemo(() => dashboard?.holdings ?? [], [dashboard?.holdings]);
@@ -568,34 +566,41 @@ export function DashboardOverview({
   );
 
   if (!dashboard || !summary) {
-    return <EmptyState title="Loading portfolio..." />;
+    return <EmptyState title="Loading net worth..." />;
   }
 
   return (
     <section className="space-y-5">
-      <PortfolioAnalysis dashboard={dashboard} onOpenTransactions={onOpenTransactions} />
+      <NetWorthAnalysis dashboard={dashboard} onOpenAssets={onOpenAssets} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricCard
-          label="Portfolio value"
-          value={formatCurrency(summary.totalValue)}
-          helper={`${summary.gainsPercent.toFixed(1)}% unrealized return`}
+          label="Net worth"
+          value={formatCurrency(summary.totalNetWorth)}
+          helper={`${summary.netWorthGainPercent >= 0 ? "+" : ""}${summary.netWorthGainPercent.toFixed(1)}% versus tracked cost`}
           icon={IndianRupee}
           tone="cyan"
         />
         <MetricCard
-          label="Invested amount"
-          value={formatCurrency(summary.investedAmount)}
+          label="Investments"
+          value={formatCurrency(summary.investmentValue)}
           helper={`${summary.holdingsCount} active holdings`}
           icon={PiggyBank}
           tone="slate"
         />
         <MetricCard
-          label="Unrealized gain"
-          value={formatCurrency(summary.gains)}
-          helper={`${summary.gains >= 0 ? "+" : ""}${summary.gainsPercent.toFixed(1)}%`}
+          label="Other assets"
+          value={formatCurrency(summary.otherAssetsValue)}
+          helper={`${summary.manualAssetCount} tracked accounts and assets`}
+          icon={Building2}
+          tone="amber"
+        />
+        <MetricCard
+          label="Net worth change"
+          value={formatCurrency(summary.netWorthGain)}
+          helper={`${summary.netWorthGain >= 0 ? "+" : ""}${summary.netWorthGainPercent.toFixed(1)}% versus cost basis`}
           icon={TrendingUp}
-          tone={summary.gains >= 0 ? "emerald" : "rose"}
+          tone={summary.netWorthGain >= 0 ? "emerald" : "rose"}
         />
         <MetricCard
           label="Realized gain"
@@ -607,20 +612,26 @@ export function DashboardOverview({
         <MetricCard
           label="Monthly SIP"
           value={formatCurrency(summary.monthlySipTotal)}
-          helper="Active mandates"
+          helper={`${summary.activeSipCount} active mandates`}
           icon={Activity}
           tone="amber"
         />
-        <MetricCard
-          label="Active SIPs"
-          value={String(summary.activeSipCount)}
-          helper="Recurring mandates"
-          icon={CalendarClock}
-          tone="emerald"
-        />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-4">
+        <AllocationCard
+          title="Net worth allocation"
+          data={dashboard.allocations.netWorth}
+          label="Asset category"
+          emptyText="Add investments, accounts, deposits, retirement savings, or other assets."
+          onSelect={(name) => {
+            if (name === "Mutual Funds" || name === "Stocks" || name === "ETFs") {
+              onOpenHoldings();
+            } else {
+              onOpenAssets();
+            }
+          }}
+        />
         <AllocationCard
           title="Asset split"
           data={assetSplit}

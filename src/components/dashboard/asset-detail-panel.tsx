@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { InvestmentIcon } from "@/components/ui/investment-icon";
 import { Label } from "@/components/ui/label";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
@@ -37,7 +36,6 @@ type InvestmentDetail = {
   category?: string;
   amc?: string;
   exchange?: string;
-  logoUrl?: string | null;
   history: Array<{ date: string; value: number }>;
 };
 
@@ -267,15 +265,6 @@ export function AssetDetailPanel({
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
-              <InvestmentIcon
-                name={payload?.details.name ?? asset?.name ?? "Loading history"}
-                type={asset?.type}
-                symbol={payload?.details.symbol ?? asset?.symbol}
-                isin={payload?.details.isin ?? asset?.isin}
-                amc={payload?.details.amc ?? asset?.amc}
-                logoUrl={payload?.details.logoUrl ?? asset?.logoUrl}
-                size="lg"
-              />
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap gap-2">
                   {asset ? <Badge>{assetTypeLabel(asset.type)}</Badge> : null}
