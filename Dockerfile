@@ -10,6 +10,8 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
+# npm registry for this build only (homelab CI passes Verdaccio); not kept in the final image.
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 RUN npm ci --ignore-scripts
 
 FROM deps AS prod-deps
