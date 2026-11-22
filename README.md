@@ -66,7 +66,8 @@ The web container applies Prisma migrations automatically before starting Next.j
 
 The app does not ship sample financial data. It combines user-entered asset snapshots, imported transactions, and live public market data:
 
-- MFAPI/mfdata for Indian mutual fund search, NAV, and metadata where available
+- AMFI's daily `NAVAll.txt` for the latest official mutual fund NAVs (used when it is newer than MFAPI, or when MFAPI is down)
+- MFAPI/mfdata for Indian mutual fund search, NAV history, and metadata where available
 - Yahoo Finance chart/search endpoints for NSE/BSE stocks and India-listed ETFs
 - Dated user snapshots for bank accounts, fixed deposits, retirement savings, gold, and other assets
 

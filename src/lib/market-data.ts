@@ -1,5 +1,6 @@
 import type { AssetType } from "@prisma/client";
 import { fetchAmfiMarketCapClassification } from "@/lib/amfi-classification";
+import { fetchAmfiLatestNav } from "@/lib/amfi-nav";
 import { fetchGrowwFundPortfolio } from "@/lib/groww-fund-data";
 
 export type ChartRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL";
@@ -364,7 +365,22 @@ export async function fetchMutualFundDetails(
   startDate.setDate(startDate.getDate() - days);
 
   const enrichedPromise = withFallbackTimeout(fetchMfDataDetails(schemeCode), 5000, null);
-  const payload = await fetchMfApiHistory(schemeCode, startDate, endDate);
+  const amfiPromise = withFallbackTimeout(fetchAmfiLatestNav(schemeCode), 12000, null);
+  let payload: MfApiResponse;
+
+  try {
+    payload = await fetchMfApiHistory(schemeCode, startDate, endDate);
+  } catch (error) {
+    // MFAPI is a community mirror; when it is down, AMFI's own file still gives today's NAV.
+    const amfi = await amfiPromise;
+
+    if (!amfi) {
+      throw error;
+    }
+
+    payload = { meta: { scheme_name: amfi.name }, data: [] };
+  }
+
   const points =
     payload.data
       ?.map((point) => ({
@@ -376,6 +392,18 @@ export async function fetchMutualFundDetails(
       .filter((point) => point.dateValue >= startDate.getTime() && point.dateValue <= endDate.getTime())
       .sort((a, b) => a.dateValue - b.dateValue)
       .map(({ date, value }) => ({ date, value })) ?? [];
+  const amfi = await amfiPromise;
+
+  // AMFI publishes each evening; MFAPI can trail it by a day. Take AMFI's NAV when it is newer.
+  if (amfi && amfi.date <= toDateString(endDate)) {
+    const lastDate = points.at(-1) ? toDateString(parseMfDate(points.at(-1)!.date)) : null;
+
+    if (!lastDate || amfi.date > lastDate) {
+      const [year, month, day] = amfi.date.split("-");
+      points.push({ date: `${day}-${month}-${year}`, value: amfi.nav });
+    }
+  }
+
   const schemeName = payload.meta?.scheme_name ?? `Scheme ${schemeCode}`;
   const growwPromise = withFallbackTimeout(
     fetchGrowwFundPortfolio(schemeCode, schemeName),
