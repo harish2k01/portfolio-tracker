@@ -15,6 +15,7 @@ import {
 } from "@/lib/market-data";
 import { buildNetWorthAllocation, mergeNetWorthTimeline } from "@/lib/net-worth-calculations";
 import { getNetWorthAssets, getNetWorthTimeline } from "@/lib/net-worth";
+import { investmentXirr, type XirrTransaction } from "@/lib/xirr";
 import {
   calculateStampDuty as calculateClientStampDuty,
   calculateUnits as calculateClientUnits,
@@ -245,7 +246,7 @@ export async function getUserHoldings(userId: string): Promise<HoldingRow[]> {
 }
 
 export async function getDashboard(userId: string) {
-  const [holdings, sips, investmentTimeline, realizedGain, netWorthAssets, netWorthTimeline] = await Promise.all([
+  const [holdings, sips, investmentTimeline, { realizedGain, flows }, netWorthAssets, netWorthTimeline] = await Promise.all([
     getUserHoldings(userId),
     prisma.sip.findMany({
       where: { userId },
@@ -253,7 +254,7 @@ export async function getDashboard(userId: string) {
       orderBy: { startDate: "desc" },
     }),
     getPortfolioTimeline(userId),
-    getRealizedGain(userId),
+    getTransactionStats(userId),
     getNetWorthAssets(userId),
     getNetWorthTimeline(userId),
   ]);
@@ -291,6 +292,7 @@ export async function getDashboard(userId: string) {
       gains,
       gainsPercent: investedAmount ? (gains / investedAmount) * 100 : 0,
       realizedGain,
+      investmentXirr: investmentXirr(flows, totalValue, new Date().toISOString().slice(0, 10)),
       monthlySipTotal,
       activeSipCount: sips.filter((sip) => sip.status === "ACTIVE").length,
       holdingsCount: holdings.length,
@@ -320,7 +322,7 @@ export async function getDashboard(userId: string) {
   };
 }
 
-async function getRealizedGain(userId: string) {
+async function getTransactionStats(userId: string) {
   const transactions = await prisma.transaction.findMany({
     where: { userId },
     select: {
@@ -328,6 +330,7 @@ async function getRealizedGain(userId: string) {
       type: true,
       amount: true,
       quantity: true,
+      tradeDate: true,
     },
     orderBy: [{ tradeDate: "asc" }, { createdAt: "asc" }],
   });
@@ -354,7 +357,13 @@ async function getRealizedGain(userId: string) {
     positions.set(transaction.assetId, position);
   }
 
-  return Number(realizedGain.toFixed(2));
+  const flows: XirrTransaction[] = transactions.map((transaction) => ({
+    type: transaction.type,
+    amount: Number(transaction.amount),
+    tradeDate: transaction.tradeDate.toISOString().slice(0, 10),
+  }));
+
+  return { realizedGain: Number(realizedGain.toFixed(2)), flows };
 }
 
 async function getPortfolioTimeline(userId: string) {

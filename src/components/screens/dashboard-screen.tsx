@@ -273,9 +273,10 @@ function NetWorthHero({ dashboard, mounted }: { dashboard: PortfolioDashboard; m
           helper={`${summary.netWorthGain >= 0 ? "+" : "−"}${percent(summary.netWorthGainPercent)} · realised ${formatCurrency(summary.realizedGain)}`}
         />
         <HeroStat
-          label="Investments"
-          value={formatCurrency(summary.investmentValue)}
-          helper={`${summary.holdingsCount} holdings · ${formatCompactCurrency(summary.otherAssetsValue)} in other assets`}
+          label="XIRR on investments"
+          value={summary.investmentXirr === null ? "—" : `${(summary.investmentXirr * 100).toFixed(1)}%`}
+          tone={summary.investmentXirr === null ? "default" : summary.investmentXirr >= 0 ? "positive" : "negative"}
+          helper={`${formatCompactCurrency(summary.investmentValue)} across ${summary.holdingsCount} holdings`}
         />
         <HeroStat
           label="Monthly SIP"

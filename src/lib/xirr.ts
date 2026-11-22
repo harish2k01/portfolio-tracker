@@ -91,3 +91,24 @@ function parseFlowDate(value: string | Date) {
   const parsed = new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
+
+export type XirrTransaction = {
+  type: string;
+  amount: number;
+  tradeDate: string | Date;
+};
+
+/**
+ * Annualised return across every investment transaction: buys, SIPs and
+ * lumpsums go out, sells come back, and today's value of what is still held
+ * is the final inflow. Returns a fraction (0.142 = 14.2%) or null.
+ */
+export function investmentXirr(transactions: XirrTransaction[], currentValue: number, asOf: string | Date) {
+  return calculateXirr([
+    ...transactions.map((transaction) => ({
+      date: transaction.tradeDate,
+      amount: transaction.type === "SELL" ? transaction.amount : -transaction.amount,
+    })),
+    ...(currentValue > 0 ? [{ amount: currentValue, date: asOf }] : []),
+  ]);
+}
