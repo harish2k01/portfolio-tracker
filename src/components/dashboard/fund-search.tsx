@@ -624,7 +624,7 @@ function SimpleNavChart({
             <Line
               type="monotone"
               dataKey="value"
-              stroke="var(--primary)"
+              stroke="var(--accent)"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 5, stroke: "#f8fafc", strokeWidth: 2 }}

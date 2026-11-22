@@ -420,8 +420,8 @@ function PreviewChart() {
       <svg viewBox="0 0 520 176" className="h-full w-full">
         <defs>
           <linearGradient id="authPreviewFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path
@@ -431,7 +431,7 @@ function PreviewChart() {
         <path
           d="M0 154 L40 148 L78 132 L118 136 L154 112 L194 118 L232 84 L272 92 L312 70 L350 78 L390 52 L430 48 L470 32 L520 26"
           fill="none"
-          stroke="var(--primary)"
+          stroke="var(--accent)"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="4"

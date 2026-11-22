@@ -84,8 +84,8 @@ export function FundDetails({ details }: FundDetailsProps) {
                   <AreaChart data={details.history} margin={{ left: 0, right: 12, top: 10 }}>
                     <defs>
                       <linearGradient id="fundNavFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.14} />
-                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.14} />
+                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="rgba(255,255,255,0.07)" vertical={false} />
@@ -97,7 +97,7 @@ export function FundDetails({ details }: FundDetailsProps) {
                       tickFormatter={(value) => formatNav(Number(value))}
                     />
                     <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatNav(Number(value))} />
-                    <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2.5} fill="url(#fundNavFill)" />
+                    <Area type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2.5} fill="url(#fundNavFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
