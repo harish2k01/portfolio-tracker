@@ -4,6 +4,7 @@ import { FormEvent, KeyboardEvent, useMemo, useState } from "react";
 import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { formatCurrency, monthlyEquivalent } from "@/lib/analytics";
+import { chartPalette } from "@/lib/chart-colors";
 import { aggregateWeightedAllocation } from "@/lib/allocation-metadata";
 import type { SipFrequency, SipRow, SipStatus } from "@/types/portfolio";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 
-const colors = ["#1277d3", "#536dfe", "#f0a62a", "#20a4c8", "#7c8fa6", "#8b6f47"];
+const colors = chartPalette;
 const marketCapColors = ["#5b4bda", "#1277d3", "#20a4c8", "#f0a62a"];
 const selectClass =
   "h-10 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 text-sm text-[var(--foreground)] outline-none transition hover:border-[var(--line-strong)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--focus)]";

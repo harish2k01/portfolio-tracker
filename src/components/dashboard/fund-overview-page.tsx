@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TablePagination, usePagination } from "@/components/ui/pagination";
 import { formatCurrency, formatNav } from "@/lib/analytics";
+import { chartPalette } from "@/lib/chart-colors";
 import { assetTypeLabel } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type {
@@ -79,7 +80,7 @@ type FundPayload =
     };
 
 const ranges: ChartRange[] = ["1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "ALL"];
-const allocationColors = ["#1277d3", "#536dfe", "#f0a62a", "#20a4c8", "#7c8fa6", "#8b6f47"];
+const allocationColors = chartPalette;
 const tooltipStyle = {
   background: "var(--panel)",
   border: "1px solid var(--line)",
@@ -340,7 +341,7 @@ function FundLineChart({
           <Line
             type="monotone"
             dataKey="value"
-            stroke="var(--primary)"
+            stroke="var(--accent)"
             strokeWidth={3}
             dot={false}
             activeDot={{ r: 5, stroke: "#f8fafc", strokeWidth: 2 }}
