@@ -132,6 +132,8 @@ export type PortfolioDashboard = {
     gains: number;
     gainsPercent: number;
     realizedGain: number;
+    /** Annualised return on investments as a fraction, or null when it cannot be computed. */
+    investmentXirr: number | null;
     monthlySipTotal: number;
     activeSipCount: number;
     holdingsCount: number;
